@@ -33,6 +33,13 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# uploaded files
+/public/uploads/*.pdf
+
+# source documents
+*.pdf
+*.pptx
+
 # vercel
 .vercel
 
