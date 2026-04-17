@@ -85,6 +85,7 @@ export default async function DashboardPage() {
                 slug={category.slug}
                 description={category.description}
                 icon={category.icon}
+                questionCount={category.questionCount}
               />
             </div>
           ))}

@@ -30,6 +30,7 @@ interface CategoryCardProps {
   slug: string
   description: string | null
   icon: string | null
+  questionCount?: number
 }
 
 export function CategoryCard({
@@ -37,6 +38,7 @@ export function CategoryCard({
   slug,
   description,
   icon,
+  questionCount,
 }: CategoryCardProps) {
   const Icon = icon && iconMap[icon] ? iconMap[icon] : Building2
   const colorClass = icon && colorMap[icon] ? colorMap[icon] : colorMap.Building2
@@ -52,9 +54,16 @@ export function CategoryCard({
           </div>
           <ArrowRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-warm group-hover:translate-x-0.5 transition-all" />
         </div>
-        <h3 className="font-heading font-semibold text-[15px] tracking-tight">
-          {name}
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className="font-heading font-semibold text-[15px] tracking-tight">
+            {name}
+          </h3>
+          {questionCount != null && questionCount > 0 && (
+            <span className="rounded-md bg-warm/10 px-1.5 py-0.5 text-[10px] font-bold text-warm">
+              {questionCount} Q&As
+            </span>
+          )}
+        </div>
         {description && (
           <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2 leading-relaxed">
             {description}

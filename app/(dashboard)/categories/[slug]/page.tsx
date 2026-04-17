@@ -1,5 +1,9 @@
 import { notFound } from "next/navigation"
-import { getCategoryContent } from "@/content"
+import {
+  getCategoryInfo,
+  getQuestionsForCategory,
+  getWorkflowsForCategory,
+} from "@/content"
 import { CategoryKnowledge } from "@/components/features/category-knowledge"
 
 export async function generateMetadata({
@@ -8,9 +12,9 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const data = getCategoryContent(slug)
-  if (!data) return { title: "Category Not Found" }
-  return { title: `${data.categoryInfo.name} — PropertyKnowledge` }
+  const info = getCategoryInfo(slug)
+  if (!info) return { title: "Category Not Found" }
+  return { title: `${info.name} — PropertyKnowledge` }
 }
 
 export default async function CategoryPage({
@@ -19,16 +23,19 @@ export default async function CategoryPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const data = getCategoryContent(slug)
+  const info = getCategoryInfo(slug)
 
-  if (!data) notFound()
+  if (!info) notFound()
+
+  const questions = getQuestionsForCategory(slug)
+  const workflows = getWorkflowsForCategory(slug)
 
   return (
     <CategoryKnowledge
-      name={data.categoryInfo.name}
-      description={data.categoryInfo.description}
-      sections={data.sections}
-      faqs={data.faqs}
+      name={info.name}
+      description={info.description}
+      questions={questions}
+      workflows={workflows}
     />
   )
 }
