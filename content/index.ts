@@ -1,8 +1,8 @@
-import { ALL_QUESTIONS, WORKFLOWS } from "./questions"
+import { ALL_QUESTIONS, WORKFLOWS, RECENT_CHANGES, POPULAR_SEARCHES, PERSONA_FILTERS, SYNONYMS } from "./questions"
 import type { QA, WorkflowDef, PropertyType, WorkflowId, Priority } from "./questions"
 
 export type { QA, WorkflowDef, PropertyType, WorkflowId, Priority }
-export { WORKFLOWS }
+export { WORKFLOWS, RECENT_CHANGES, POPULAR_SEARCHES, PERSONA_FILTERS, SYNONYMS }
 
 // Legacy types kept for backward compatibility
 export type Section = {

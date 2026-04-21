@@ -3,6 +3,10 @@ import {
   getCategoryInfo,
   getQuestionsForCategory,
   getWorkflowsForCategory,
+  RECENT_CHANGES,
+  POPULAR_SEARCHES,
+  PERSONA_FILTERS,
+  SYNONYMS,
 } from "@/content"
 import { CategoryKnowledge } from "@/components/features/category-knowledge"
 
@@ -36,6 +40,10 @@ export default async function CategoryPage({
       description={info.description}
       questions={questions}
       workflows={workflows}
+      recentChanges={RECENT_CHANGES}
+      popularSearches={POPULAR_SEARCHES}
+      personaFilters={PERSONA_FILTERS}
+      synonyms={SYNONYMS}
     />
   )
 }
