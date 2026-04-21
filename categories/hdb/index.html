@@ -1,0 +1,2655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HDB — Property Knowledge Base</title>
+  <style>
+    :root {
+      --bg: #fafaf9;
+      --card: #ffffff;
+      --border: #e7e5e4;
+      --text: #1c1917;
+      --muted: #78716c;
+      --warm: #c2410c;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2rem 1rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .header { margin-bottom: 2rem; }
+    .header .label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.2em; color: var(--warm); margin-bottom: 6px;
+    }
+    .header h1 { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; }
+    .header p { color: var(--muted); font-size: 0.875rem; margin-top: 6px; }
+
+    .stats { font-size: 0.75rem; font-weight: 600; color: var(--muted); margin-bottom: 1rem; }
+
+    .workflow-section { margin-bottom: 2rem; }
+    .workflow-heading {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem; border-bottom: 2px solid var(--border);
+    }
+    .workflow-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      display: inline-block; flex-shrink: 0;
+    }
+    .workflow-count {
+      font-size: 11px; font-weight: 700; background: #f5f5f4;
+      color: var(--muted); padding: 1px 8px; border-radius: 4px; margin-left: auto;
+    }
+
+    .qa-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; margin-bottom: 0.75rem; overflow: hidden;
+    }
+    .qa-question {
+      padding: 1rem 1.25rem; font-size: 13px; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; gap: 8px;
+      user-select: none; transition: color 0.15s;
+    }
+    .qa-question:hover { color: var(--warm); }
+    .qa-question .arrow {
+      margin-left: auto; flex-shrink: 0; font-size: 12px;
+      color: var(--muted); transition: transform 0.2s;
+    }
+    .qa-card.open .qa-question .arrow { transform: rotate(180deg); }
+
+    .qa-answer { display: none; padding: 0 1.25rem 1rem; }
+    .qa-card.open .qa-answer { display: block; }
+
+    .qa-answer-content {
+      background: #f5f5f4; border: 1px solid #e7e5e4; border-radius: 8px;
+      padding: 1rem; font-size: 13px; line-height: 1.8; color: #57534e;
+    }
+    .qa-answer-content strong { color: var(--text); font-weight: 600; }
+    .qa-answer-content code {
+      background: #e7e5e4; padding: 1px 6px; border-radius: 4px;
+      font-size: 11px; font-family: 'SF Mono', Monaco, monospace;
+    }
+
+    .qa-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; }
+
+    .badge {
+      display: inline-flex; align-items: center; padding: 2px 8px;
+      border-radius: 4px; font-size: 9px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .badge-high { background: #fef2f2; color: #dc2626; }
+    .badge-medium { background: #fffbeb; color: #d97706; }
+    .badge-low { background: #f5f5f4; color: #78716c; }
+    .badge-tricky { background: #fdf2f8; color: #db2777; }
+    .badge-workflow { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+
+    .search-box { position: relative; margin-bottom: 1.5rem; }
+    .search-box input {
+      width: 100%; padding: 10px 16px 10px 40px;
+      border: 1px solid var(--border); border-radius: 12px;
+      font-size: 14px; outline: none; background: var(--card);
+      transition: border-color 0.15s;
+    }
+    .search-box input:focus { border-color: var(--warm); }
+    .search-box .search-icon {
+      position: absolute; left: 14px; top: 50%;
+      transform: translateY(-50%); color: var(--muted); opacity: 0.5;
+    }
+
+    .no-results {
+      text-align: center; padding: 3rem; border: 1px solid var(--border);
+      border-radius: 12px; background: var(--card); display: none;
+    }
+    .no-results p { color: var(--muted); font-size: 14px; }
+
+    @media (max-width: 640px) {
+      body { padding: 1rem 0.75rem; }
+      .header h1 { font-size: 1.5rem; }
+      .qa-question { font-size: 12px; padding: 0.75rem 1rem; }
+      .qa-answer { padding: 0 1rem 0.75rem; }
+    }
+
+    @media print {
+      .search-box { display: none; }
+      .qa-card.open .qa-answer, .qa-answer { display: block !important; }
+      .qa-question .arrow { display: none; }
+      body { max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="label">Knowledge Base</div>
+    <h1>HDB</h1>
+    <p>Everything about HDB flats — BTO, resale, regulations, and financial planning.</p>
+  </div>
+
+  <div class="search-box">
+    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="searchInput" placeholder="Search questions, policies, scenarios..." oninput="filterQuestions()" />
+  </div>
+
+  <div class="stats" id="resultCount"></div>
+
+  <div id="questionsContainer">
+
+    <!-- ═══ FIRST CLIENT MEETING ═══ -->
+    <div class="workflow-section" data-workflow="first-meeting">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#059669"></span>
+        First Client Meeting
+        <span class="workflow-count" id="count-first-meeting"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Pre-viewing checklist — what to check BEFORE showing any flat
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Run through 10 items before you let the buyer fall in love with a unit.1. Youngest buyer's age 2. Property's remaining lease 3. Age + lease ≥ 95 (CPF pro-ration) 4. 1st or 2nd property 5. MOP fulfilled (if selling existing HDB) 6. Income ceiling met 7. Citizenship mix 8. Existing outstanding loans 9. TDSR headroom 10. CPF OA balance.<br><br><strong>Why:</strong> saves wasted viewings and awkward 'sorry client can't afford this' moments.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What documents should I ask the buyer to prepare?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">HFE letter, Singpass login, NRIC, latest 3-month payslips, CPF statement, existing loan statements (if any).For non-salaried buyers: 2 years of income tax NOA. For PRs: PR card + entry permit. For foreigners in the household: passport + visa.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          How do I qualify a buyer's budget in 5 minutes?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Quick math: (Income × 12 × 4.5 × 0.5) + (CPF OA + cash savings) = rough max flat price.This is a napkin formula assuming TDSR 55% and 25% downpayment. Always confirm with HFE letter.<br><br><strong>Example:</strong> Couple earning $8K combined → ($8,000 × 12 × 4.5 × 0.5) + $100K OA + $50K cash = $366K loan + $150K = <strong>~$516K max flat</strong>.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Buyer says 'I have $100K cash' — what flat range can they consider?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Depends on their loan eligibility, not just cash.$100K cash alone could downpay a $400K flat (25% DP). But if their TDSR only supports a $200K loan, max flat is $300K. Always check <strong>loan capacity first</strong>, cash second.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Should I ask for HFE letter first or start viewing?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">HFE letter first. Always. No exceptions.HDB requires valid HFE before resale buyer can accept OTP from seller. Without HFE, buyer literally cannot buy. Also — HFE tells you exact grants + loan eligibility so you can shortlist accurately.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What's a realistic timeline from 'I want to buy' to key collection?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Resale: 3–4 months. BTO: 3–5 years (construction + MOP wait).<strong>Resale breakdown:</strong> HFE 1 month → find flat + OTP 1–2 months → HDB resale application processing ~8 weeks → completion at HDB appointment.<br><strong>BTO:</strong> Application → ballot → booking (2–3 months) → construction (3–4 years) → key collection.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ BTO & NEW FLATS ═══ -->
+    <div class="workflow-section" data-workflow="bto">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#10B981"></span>
+        BTO & New Flats
+        <span class="workflow-count" id="count-bto"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          BTO eligibility — full criteria
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">SC + age 21+ (family) or 35+ (single, 2-room Flexi). Income ceiling $14K (most) or $7K (2-room Flexi). Must not own any property.Additional rules:<br>• Must not have bought 2 HDB flats before<br>• Must form valid family nucleus<br>• Multi-generation families: $21K ceiling<br>• Extended family: $21K ceiling<br>• Plus/Prime flats may have stricter rules per launch</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What are Standard, Plus, Prime flats?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">New BTO classification from Oct 2024. Standard = regular BTO. Plus = better locations, tighter rules. Prime = best locations, tightest rules.<strong>Standard:</strong> 5-yr MOP, no clawback<br><strong>Plus:</strong> 10-yr MOP, 6-8% subsidy clawback on resale, resale buyer must meet $14K ceiling<br><strong>Prime:</strong> 10-yr MOP, 9% clawback, resale buyer must meet $14K ceiling, 30-month wait-out for private property owners<br><br><strong>Both Plus &amp; Prime:</strong> whole-flat rental banned even after MOP.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Subsidy clawback — how does it actually work?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">When Plus/Prime owner sells after MOP, they pay HDB a % of resale price (or valuation, whichever is higher).<strong>Rates set per launch:</strong> Oct 2024 launch was 6–8% for Plus, 9% for Prime.<br><strong>Example:</strong> Prime flat sold at $1.2M with 9% clawback = $108K paid back to HDB.<br><strong>Important:</strong> clawback only applies to the ORIGINAL BTO owner. Resale buyer of a Plus/Prime flat doesn't pay clawback when they later sell.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          BTO application process step-by-step
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">1. Apply for HFE letter 2. Watch for sales launch 3. Apply during launch window 4. Ballot 5. Book flat if successful 6. Sign agreement + pay option fee 7. Wait for construction 8. Key collection.Ballot results: ~3 weeks after launch. Booking appointment: 2–6 months after ballot depending on queue number. Option fee: $500–$2,000 depending on flat type.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Can I apply for multiple BTOs at once?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">No — only 1 application per launch across all towns.If you apply and don't book, 1-year time bar applies before next resale grant or BTO application (from March 2012 onwards).</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What happens if I cancel after booking BTO?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">1-year time bar before you can apply for resale with CPF grant, or before being an essential occupier.Option fee is forfeited. For Plus/Prime flats, additional penalties may apply per launch terms. Always warn clients: <em>'Book a BTO only if you're 100% committed.'</em></div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Single can buy BTO — what are the rules?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Single SC aged 35+. Since Oct 2024, singles can buy 2-room Flexi in Standard / Plus / Prime locations.Income ceiling: $7,000. Single pays $15,000 premium (vs couples). Can also buy Standard/Plus resale flat of any size. Prime resale: 4-room or smaller only.<br><br><strong>Widowed/orphan:</strong> eligible from age 21.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Why does my client's BTO application keep failing?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Usually one of: wrong category (first-timer vs second-timer), applied in wrong town for income level, poor queue number, or over-subscribed launch.Check: are they genuinely first-timer? Did they use past Open Booking waiver? Are they married (nucleus) or Single scheme? Tell client to also try Sale of Balance Flats (SBF) or Open Booking — shorter waits.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ RESALE PURCHASE ═══ -->
+    <div class="workflow-section" data-workflow="resale">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#14B8A6"></span>
+        Resale Purchase
+        <span class="workflow-count" id="count-resale"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          HDB resale buying process — full steps
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">1. Register Intent to Buy 2. Get HFE letter 3. Find flat 4. Seller grants OTP 5. Buyer exercises OTP 6. Submit resale application 7. HDB processes ~8 weeks 8. Complete at HDB appointment.Option fee: $1–$1,000 (negotiable, buyer pays on OTP). OTP valid 21 calendar days from date of grant. Total deposit (option + exercise fee) capped at $5,000 for HDB resale.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is COV (Cash Over Valuation)?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">COV = Purchase price − HDB valuation. Must be paid in CASH (no CPF, no loan).HDB issues 'Request for Value' during resale application. Buyer only discovers exact valuation AFTER committing to OTP.<br><br><strong>Tip:</strong> Use recent transactions in the block/street to estimate. Advise buyer to budget extra cash buffer.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is Intent to Buy and when to register?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Free declaration on HDB Resale Portal. Tells HDB you're starting the resale journey.Valid for 12 months. Usually done before/around HFE application. Not binding. Helps HDB prepare your eligibility records.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is the OTP for HDB resale?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Option to Purchase. Seller grants. Buyer pays $1–$1,000 option fee. Valid 21 calendar days.Buyer exercises by signing resale application + paying exercise fee. Total (option + exercise) capped at $5,000.<br><strong>If buyer doesn't exercise:</strong> seller keeps option fee, nothing more.<br><strong>Seller must have registered Intent to Sell for &gt;7 days before granting OTP.</strong></div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Can buyer extend the 21-day OTP period?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Only if seller agrees. No HDB rule forcing extension.In practice: rare. Usually buyer either exercises within 21 days or the OTP lapses. If extension agreed, must be documented in writing.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Can PRs buy HDB resale?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Yes — but only if forming a family nucleus. Single PR cannot buy HDB at all.<strong>2 PRs as family nucleus:</strong> resale only (no BTO). Subject to SPR quota per block.<br><strong>SC + PR:</strong> can buy BTO and resale. $10,000 premium for first-timer SC+PR household (refunded when PR becomes citizen or has child).<br><strong>Must dispose private property 30 months BEFORE HFE if either spouse previously owned.</strong></div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is EIP and how to check quota?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Ethnic Integration Policy. Caps on ethnic group % per block/neighbourhood.<strong>Block / Neighbourhood:</strong><br>Chinese: 84% / 87%<br>Malay: 25% / 22%<br>Indian &amp; Others: 15% / 13%<br><br>If quota hit: buyer cannot buy in that block. Quota refreshes 1st of each month.<br><strong>Check:</strong> hdb.gov.sg → EIP/SPR Quota e-Service.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is SPR quota (separate from EIP)?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Non-Malaysian PRs capped at 8% per block, 5% per neighbourhood.If SPR quota hit: non-Malaysian PR family cannot buy in that block. Malaysian PRs are exempt from this quota (but still subject to EIP).</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What about buying resale flats with short remaining lease?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><20 years: CANNOT use CPF at all. 20+ but doesn't cover youngest to age 95: CPF pro-rated.HDB loan also pro-rated if lease doesn't cover to 95. No grants. Must be cash + bank loan (if bank willing).<br><br><strong>Age 55+ exception:</strong> 2-room Flexi short-lease flats (15–45 yr leases) are specifically designed for seniors.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ HFE LETTER ═══ -->
+    <div class="workflow-section" data-workflow="hfe">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#0EA5E9"></span>
+        HFE Letter
+        <span class="workflow-count" id="count-hfe"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is the HFE letter and why is it critical?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">HDB Flat Eligibility letter. Single source of truth for: flat eligibility, CPF grant amount, HDB loan amount, resale levy.Introduced 9 May 2023 — replaced the old HLE. Valid 9 months. Processing ~1 month (longer near BTO launches). Free. Apply via HDB Flat Portal with Singpass.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Difference between HFE and HLE?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">HLE (old, pre-May 2023): loan-only assessment. HFE (new): comprehensive — flat eligibility, grants, loan, resale levy all in one.HLE no longer issued. If client still has a valid old HLE letter, it can still be used until expiry but new applications use HFE.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          My client's HFE expired — what now?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Apply for a fresh HFE. Cannot extend expired ones.New assessment uses current policies and income. If rules or income changed, new eligibility may differ.<br><strong>Tip:</strong> Always tell clients 'Start flat search immediately after HFE. Don't sit on it.'</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Can HFE be used if income changed after it was issued?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Yes — as long as still valid (9 months). Outcome stands.<strong>Income went UP past ceiling:</strong> can still proceed, HFE locks in eligibility.<br><strong>Income went DOWN and now qualifies for EHG:</strong> should cancel and reapply to get higher grant.<br><strong>Loan amount</strong> won't be reassessed unless adverse change to loan-servicing ability.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          How long does HFE application take?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">About 1 month once all documents submitted. Longer during/near BTO sales launches.Apply at least 1 month ahead of any sales launch. All income earners' documents must be uploaded. Use Singpass Myinfo to auto-fill.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Can 2 applicants have separate HFE letters?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">No. One person can only be on ONE HFE application (applicant or occupier).Flat application is processed based on the SUBMITTED HFE. Other HFEs issued earlier or later are ignored.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ MOP RULES ═══ -->
+    <div class="workflow-section" data-workflow="mop">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#06B6D4"></span>
+        MOP Rules
+        <span class="workflow-count" id="count-mop"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is MOP?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Minimum Occupation Period. Standard HDB: 5 years. Plus/Prime: 10 years. Starts from key collection date.During MOP, owner <strong>cannot:</strong> sell, rent whole flat (rooms OK), buy/own private property.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DC2626;background:rgba(220,38,38,0.08)">Meeting a Seller</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          After MOP — what can owner do?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Sell on resale market, rent whole flat (with HDB approval), buy private property.For Plus/Prime: whole-flat rental still banned even after MOP. Only room rental allowed.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DC2626;background:rgba(220,38,38,0.08)">Meeting a Seller</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Are there any exceptions to the 5-year MOP?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Some cases extend to 10 years (non-citizen spouse scheme, Plus/Prime flats). Hardship waiver for divorce, financial distress, medical is case-by-case.Divorce: if couple bought under first-timer scheme, HDB may allow sale before MOP with consent from both parties.<br>Death: surviving spouse can sell without MOP penalty.<br>Must apply to HDB in writing for case-specific ruling.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DC2626;background:rgba(220,38,38,0.08)">Meeting a Seller</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Can I count rental period toward MOP?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">No. MOP is 'occupation' — owners must physically live in flat.If caught renting out whole flat during MOP: MOP clock resets, possible compulsory acquisition. Room rental during MOP: allowed with HDB approval.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DC2626;background:rgba(220,38,38,0.08)">Meeting a Seller</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Client inherited HDB during MOP of another HDB — what happens?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Must dispose of one within 6 months. Cannot own 2 HDB flats.Same rule if inherited private property: must dispose of one within 6 months unless HDB grants exception (e.g., inheritor's family occupies inherited private).<br><strong>Advise:</strong> write to HDB for case-specific ruling immediately.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DC2626;background:rgba(220,38,38,0.08)">Meeting a Seller</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ SELLING A FLAT ═══ -->
+    <div class="workflow-section" data-workflow="seller-core">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#DC2626"></span>
+        Selling a Flat
+        <span class="workflow-count" id="count-seller-core"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          HDB resale selling process — full steps
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">1. Register Intent to Sell 2. List + market flat 3. Grant OTP to buyer 4. Buyer exercises OTP 5. Submit resale application 6. HDB processes ~8 weeks 7. Completion appointment.Intent to Sell must be at least 7 DAYS before granting OTP. Valid 12 months. Seller's agent commission typically ~2%.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DC2626;background:rgba(220,38,38,0.08)">Meeting a Seller</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is Intent to Sell?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Free declaration on HDB Flat Portal that you intend to sell. Mandatory before granting OTP.Must be registered &gt;7 days before granting OTP. Valid 12 months. Purpose: HDB checks MOP fulfilled, outstanding issues clear.<br><strong>Tell sellers:</strong> register early, don't wait until buyer appears.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DC2626;background:rgba(220,38,38,0.08)">Meeting a Seller</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What documents should seller prepare?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">CPF usage statement, outstanding loan statement, title deed, property tax notice, renovation invoices.For HDB resale: also EIP quota check, HDB resale checklist. <strong>Get CPF statement FIRST</strong> — determines actual cash seller gets.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DC2626;background:rgba(220,38,38,0.08)">Meeting a Seller</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What happens to seller's CPF when selling?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Must refund Principal + Accrued Interest (2.5%) to CPF, regardless of age.<strong>Below 55:</strong> refund → OA.<br><strong>55+:</strong> from 1 Jul 2024, refund → OA by default (was cash before). Can top up RA, use for next property, or withdraw cash.<br><strong>Negative sale:</strong> refund capped at net proceeds (no cash out of pocket).</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DC2626;background:rgba(220,38,38,0.08)">Meeting a Seller</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          How to calculate seller's cash proceeds?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Selling Price − Outstanding Loan − CPF P+I (all owners) − Agent commission − Legal fees − SSD (if any) = Net cash<strong>Run this for every seller at first meeting.</strong> Many sellers are shocked when they realise 'paper gain' doesn't equal 'cash in pocket' after CPF refund.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DC2626;background:rgba(220,38,38,0.08)">Meeting a Seller</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Negative sale — how is CPF refund split?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Pro-rated based on each owner's P+I share of total.<strong>Formula:</strong> Your refund = (Your P+I ÷ Total P+I) × Net proceeds<br><br><strong>Example:</strong> Net $160K. Husband P+I $150K, Wife P+I $50K. Total $200K.<br>Husband: 150/200 × $160K = $120K<br>Wife: 50/200 × $160K = $40K<br>Neither gets cash. Buyer's deposit must also go to sellers' CPF.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DC2626;background:rgba(220,38,38,0.08)">Meeting a Seller</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is Resale Levy and when does it apply?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Applies when seller (who received housing subsidy) buys another SUBSIDISED HDB.<strong>Levy by flat type SOLD:</strong><br>2-room: $15K<br>3-room: $30K<br>4-room: $40K<br>5-room: $45K<br>Executive: $50K<br>EC: $55K<br><br>Does NOT apply when buying resale or private property.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DC2626;background:rgba(220,38,38,0.08)">Meeting a Seller</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Client wants to sell during MOP — is there any way?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Only with HDB approval on hardship grounds: divorce, severe financial distress, medical emergency.Case-by-case. Apply in writing to HDB explaining situation + supporting documents. No guaranteed outcome. Most early-MOP sales involve compulsory acquisition or financial hardship waivers.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DC2626;background:rgba(220,38,38,0.08)">Meeting a Seller</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          EIP affects sellers — how?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">If block EIP quota for seller's race is hit: can only sell to same race.Minority sellers often face smaller eligible buyer pool. Can wait until next month's quota refresh.<br><br><strong>HDB buyback scheme:</strong> owned 10+ years AND tried selling 6+ months at reasonable price → can apply for HDB to buy back.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DC2626;background:rgba(220,38,38,0.08)">Meeting a Seller</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Buyer's deposit after OTP — where does it go?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Directly to seller. Agent must NOT hold it.Exercise fee goes to seller. At HDB appointment, seller redeems loan + refunds CPF, receives net cash via lawyer's trust account.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DC2626;background:rgba(220,38,38,0.08)">Meeting a Seller</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ CPF RULES — CORE ═══ -->
+    <div class="workflow-section" data-workflow="cpf-core">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#2563EB"></span>
+        CPF Rules — Core
+        <span class="workflow-count" id="count-cpf-core"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          4 types of CPF accounts — which can be used for property?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">OA only. Cannot use SA, MA, or RA.<strong>OA (Ordinary):</strong> housing, insurance, investment, education<br><strong>SA (Special):</strong> retirement — closed for 55+ from 2025<br><strong>MA (Medisave):</strong> medical<br><strong>RA (Retirement):</strong> created at 55 from OA+SA</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#2563EB;background:rgba(37,99,235,0.08)">CPF Rules</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          CPF contribution rates 2026
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">55 &amp; below: 37% total. Rates drop after 55. Salary ceiling $8,000/month from Jan 2026.Above 55–60: 34% (+1.5% from 2025)<br>Above 60–65: 25% (+1.5% from 2025)<br>Above 65–70: 16.5%<br>Above 70: 12.5%<br><br>The +1.5% for 55–65 goes to RA (up to FRS), then OA.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#2563EB;background:rgba(37,99,235,0.08)">CPF Rules</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          CPF interest rates 2026
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">OA: 2.5% | SA/MA/RA: 4.0% | Reviewed quarterly.Extra interest: +1% on first $60K combined (cap $20K from OA). Age 55+: extra +1% on first $30K.<br><strong>Effective for seniors:</strong> first $30K up to 6%, next $30K up to 5%, rest 4%.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#2563EB;background:rgba(37,99,235,0.08)">CPF Rules</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Full list: what can CPF OA be used for?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Downpayment, monthly instalment, loan repayment, BSD, ABSD, mortgage stamp, legal fees, HPS premium, HDB upgrading (MUP/HIP), construction loan (landed).CANNOT use for: COV, agent commission, renovation, anything else. Each usage is capped differently (see VL and WL).</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#2563EB;background:rgba(37,99,235,0.08)">CPF Rules</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is VL (Valuation Limit)?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Lower of: purchase price OR valuation.<strong>Example:</strong> Price $420K, Valuation $400K → VL = $400K.<br>Baseline cap for CPF usage. After hitting VL, continuing to WL requires setting aside BRS.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#2563EB;background:rgba(37,99,235,0.08)">CPF Rules</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is WL (Withdrawal Limit)?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">120% of VL (from Jan 2008).<strong>Example:</strong> VL $400K → WL = $480K.<br>Applies to bank loans. For HDB loan on new BTO: no WL (no limit beyond LTV cap).</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#2563EB;background:rgba(37,99,235,0.08)">CPF Rules</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          The 'age 95' rule — full CPF pro-ration formula
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Youngest buyer's age + remaining lease ≥ 95 → FULL CPF. If &lt; 95 → pro-rated.<strong>Pro-ration formula:</strong> (Remaining Lease − 20) ÷ (95 − Youngest Age − 20) × VL<br><br><strong>Examples:</strong><br>Age 25 + 88yr = 113 → Full<br>Age 25 + 65yr = 90 → 45/50 = 90%<br>Age 45 + 50yr = 95 → Full (exactly 95 counts)<br>Age 50 + 40yr = 90 → 20/25 = 80%<br><br>From 10 May 2019.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#2563EB;background:rgba(37,99,235,0.08)">CPF Rules</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Can my client retain OA balance when taking HDB loan?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Yes. Can retain up to $20,000 EACH in OA (from 28 Aug 2018).Optional — can still choose to use all OA. Good for clients wanting emergency buffer. This $20K keeps earning 2.5% interest.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#2563EB;background:rgba(37,99,235,0.08)">CPF Rules</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          CPF usage: HDB loan vs Bank loan — summary
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">HDB loan (new BTO): up to LTV 75%, no VL/WL. HDB loan (resale): up to VL, beyond VL if BRS set aside. Bank loan: up to VL, then up to WL if BRS set aside.HDB loan still more flexible for CPF. But with 75% LTV cap (since Aug 2024), max CPF-fundable amount = 75% of price for new BTO.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#2563EB;background:rgba(37,99,235,0.08)">CPF Rules</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ CPF RULES — SENIORS & 2ND PROPERTY ═══ -->
+    <div class="workflow-section" data-workflow="cpf-seniors">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#1D4ED8"></span>
+        CPF Rules — Seniors & 2nd Property
+        <span class="workflow-count" id="count-cpf-seniors"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is BRS, FRS, ERS for 2026?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">BRS: $110,200 | FRS: $220,400 | ERS: $440,800 (for turning 55 in 2026).BRS increases ~3.5% yearly. Relevant sum = year person TURNED 55.<br><br>2023: $99,400 | 2024: $102,900 | 2025: $106,500 | 2026: $110,200 | 2027: $114,100</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#B45309;background:rgba(180,83,9,0.08)">Senior 55+</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          At age 55 — what changes for CPF and property?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">RA is created. Savings from SA + up to FRS from OA transfer to RA. Only OA left for property.If client already owns property covering to age 95: only BRS needs to go to RA (not FRS). Remaining OA stays usable.<br><br><strong>From 2025:</strong> SA is closed for members 55+. SA savings go to RA (up to FRS) then OA.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#B45309;background:rgba(180,83,9,0.08)">Senior 55+</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Can 55+ client still use CPF for housing loan?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Yes. OA balance + new CPF contributions can continue paying loan.After 55, OA shrinks (some goes to RA). Plan ahead: advise client to calculate remaining OA after 55 transfer.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#B45309;background:rgba(180,83,9,0.08)">Senior 55+</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          How to reserve OA savings before turning 55?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">At age 54, apply to reserve OA so it WON'T transfer to RA. For existing housing loan or next property.<strong>How:</strong> Singpass → my cpf → My Requests → Retirement → 'Decide on my CPF options'<br><strong>Deadline:</strong> within 6 months before 55th birthday, at least 5 working days prior.<br><strong>Warning:</strong> reserved amount locked to specified property only.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#B45309;background:rgba(180,83,9,0.08)">Senior 55+</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Property Pledge — what is it?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Members 55+ with property covering to age 95 can pledge property up to BRS, withdraw RA savings above BRS in cash.If property sold: pledge amount refunded to RA. Does NOT affect ownership. Needs all co-owners' consent. Excludes interest, govt grants, top-ups.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#B45309;background:rgba(180,83,9,0.08)">Senior 55+</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          CPF for 2nd property — what's different?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Must set aside BRS (if property covers to 95) or FRS (if not) before using OA for 2nd property.<strong>Has property covering to 95:</strong> set aside BRS in OA+SA (&lt;55) or RA+OA (55+). Only EXCESS OA usable. WL capped at 100% VL (not 120%).<br><strong>Does not cover to 95:</strong> must set aside FRS.<br><strong>Grace period:</strong> 6 months from purchase (completed) or TOP (under construction) to sell existing → BRS rule waived.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#0891B2;background:rgba(8,145,178,0.08)">Upgrader</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is Home Protection Scheme (HPS)?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Mortgage-reducing insurance. MANDATORY if using CPF for HDB monthly instalments.Covers death, terminal illness, total permanent disability up to age 65 or loan fully paid. Premium from OA. Min 100% coverage (50% each or 100% each).<br><br>Can buy external insurance (need CPFB approval for exemption).</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#2563EB;background:rgba(37,99,235,0.08)">CPF Rules</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Does HPS apply to bank loans?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">No. HPS only for HDB loans with CPF instalments.Bank loan borrowers typically buy Mortgage Reducing Term Assurance (MRTA) privately. Not mandatory but strongly recommended.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#2563EB;background:rgba(37,99,235,0.08)">CPF Rules</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is the CPF refund change from 1 Jul 2024?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Before: balance after FRS → cash. After: balance → OA by default.For 55+ sellers. From OA, member can: (1) use for next property, (2) transfer to RA for higher interest, (3) withdraw as cash.<br><br><strong>Advise senior sellers:</strong> money goes to OA first, not cash directly.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#B45309;background:rgba(180,83,9,0.08)">Senior 55+</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ GRANTS & SUBSIDIES ═══ -->
+    <div class="workflow-section" data-workflow="grants">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#7C3AED"></span>
+        Grants & Subsidies
+        <span class="workflow-count" id="count-grants"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Maximum grants for resale flat — families
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Up to $230,000 combined: Family Grant $80K + EHG $120K + Proximity $30K.<strong>Family Grant:</strong> $80K (2-4rm) or $50K (5rm+). Income ≤ $14K.<br><strong>EHG:</strong> up to $120K. Income ≤ $9K.<br><strong>Proximity:</strong> $30K (live together) / $20K (within 4km). No income cap.<br><br>All grants go to CPF OA, count toward WL.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#7C3AED;background:rgba(124,58,237,0.08)">Grants</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Maximum grants for resale — singles
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Up to $115,000: Singles Grant $40K + EHG Singles $60K + Proximity $15K.<strong>Singles Grant:</strong> $40K (2-4rm) / $25K (5rm). Age 35+, income ≤ $7K.<br><strong>EHG Singles:</strong> up to $60K. Income ≤ $4,500.<br><strong>Proximity:</strong> $15K (together) / $10K (within 4km).</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#7C3AED;background:rgba(124,58,237,0.08)">Grants</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          EHG income table — families
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Tiered. Lower income = higher grant. Max $120K for income ≤ $1,500.≤$1,500 → $120K | $1,501–$2K → $110K | $2,001–$2.5K → $105K<br>$2,501–$3K → $95K | $3,001–$3.5K → $90K | $3,501–$4K → $80K<br>$4,001–$4.5K → $70K | $4,501–$5K → $65K | $5,001–$5.5K → $55K<br>$5,501–$6K → $50K | $6,001–$6.5K → $40K | $6,501–$7K → $30K<br>$7,001–$7.5K → $25K | $7,501–$8K → $20K | $8,001–$8.5K → $10K | $8,501–$9K → $5K<br><br>Requires 12 months continuous employment.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#7C3AED;background:rgba(124,58,237,0.08)">Grants</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Grants for NEW BTO — what's available?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">EHG (up to $120K families / $60K singles) + Step-Up Grant ($15K).Family Grant and Proximity Grant are <strong>resale only</strong>. Step-Up: for second-timer upgrading from 2-room subsidised (non-mature) to 3-room BTO in non-mature estate.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#7C3AED;background:rgba(124,58,237,0.08)">Grants</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Grant conditions — what comes with accepting a grant?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Considered 'housing subsidy received'. Resale levy if buying another subsidised. 5-yr MOP. All grant + accrued interest refunded on sale.Also: cannot invest in private property during MOP. Cannot sublet whole flat during MOP. Flat must have ≥20yr remaining lease. Max $60K returns to OA; excess split between SA + MA.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#7C3AED;background:rgba(124,58,237,0.08)">Grants</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Proximity Grant — who qualifies?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">SC buying resale flat to live with or within 4km of parents/child.Parents/child can live in HDB or private property. 4km = straight-line distance via HDB Map Services. Can only receive PHG ONCE per buyer.<br><br><strong>Families:</strong> $30K (together) / $20K (within 4km).<br><strong>Singles:</strong> $15K (together) / $10K (within 4km).</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#7C3AED;background:rgba(124,58,237,0.08)">Grants</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          1-year time bar after BTO cancellation
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">If cancelled after booking BTO (from March 2012): must wait 1 year before applying for resale with CPF grant or being essential occupier.Warn clients: 'Don't book BTO unless 100% committed.' Forfeited option fee + 1-year wait is a double penalty.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#7C3AED;background:rgba(124,58,237,0.08)">Grants</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Citizen Top-Up Grant — when applies?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">For SC+PR households who paid $10K premium. When PR becomes SC or couple has child, can claim $10K back.Only for first-timer SC+PR households. Must apply through HDB. Not automatic.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#7C3AED;background:rgba(124,58,237,0.08)">Grants</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Client earns slightly above $14K — any workaround?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">No for BTO. Yes for resale (no income ceiling for resale purchase, only for grants).If above $14K: cannot get BTO, cannot get most grants. But can still buy resale flat outright using HDB loan (income cap applies) or bank loan (no cap). For income $14K–$16K: consider EC (Executive Condo) instead.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#7C3AED;background:rgba(124,58,237,0.08)">Grants</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ LOANS & FINANCE ═══ -->
+    <div class="workflow-section" data-workflow="loans">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#D97706"></span>
+        Loans & Finance
+        <span class="workflow-count" id="count-loans"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          HDB Loan vs Bank Loan — full comparison 2026
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">HDB: LTV 75%, interest 2.6% fixed, no penalty, income ceiling $14K. Bank: LTV 75%, interest 1.5-2% (2026 lows), 5% cash min, no income cap.<strong>HDB LOAN:</strong><br>• LTV: 75% (since 20 Aug 2024)<br>• Downpayment: 25% (can be all CPF)<br>• Interest: 2.6% fixed (OA + 0.1%)<br>• No prepayment penalty<br>• Income ceiling $14K<br>• Both buyers must not own private<br><br><strong>BANK LOAN:</strong><br>• LTV: 75%<br>• 5% cash min in downpayment<br>• Interest 1.5%–2% (2026)<br>• Lock-in typically 1–2 years<br>• Variable rates possible</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#D97706;background:rgba(217,119,6,0.08)">Loans & Finance</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is TDSR and how does it work?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Total Debt Servicing Ratio: all monthly debts ≤ 55% of gross income.Includes: housing loans, car loan, personal loan, credit card minimum, student loan. Uses stress-test interest rate (currently 4% for residential).<br><br><strong>If tight:</strong> pay down other debts, longer tenure, bigger downpayment.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#D97706;background:rgba(217,119,6,0.08)">Loans & Finance</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is MSR (Mortgage Servicing Ratio)?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">HDB-specific: monthly mortgage ≤ 30% of gross income.Applies to HDB flats AND ECs. On top of TDSR. Stricter constraint for HDB.<br><br><strong>Example:</strong> Income $6,000. MSR max = $1,800/month mortgage. TDSR max = $3,300/month all debts.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#D97706;background:rgba(217,119,6,0.08)">Loans & Finance</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Max loan tenure rules
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">HDB: 25 years (or until 65). Bank: 30 years (or until 65).If tenure + age > 65:<br>• LTV drops to 55%<br>• Min 10% cash downpayment<br><br>Older clients = shorter tenure = higher monthly = TDSR issues.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#D97706;background:rgba(217,119,6,0.08)">Loans & Finance</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          2nd property LTV rules
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">2nd loan: 45% LTV (if no outstanding) or 25% LTV (if has outstanding). 3rd: 35% / 15%.Min 25% cash. If tenure + age > 65, LTV drops further to 25%/15%/15%/5%.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#D97706;background:rgba(217,119,6,0.08)">Loans & Finance</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Can buyer refinance HDB loan to bank loan?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Yes, anytime (no HDB penalty).Warning: one-way switch. Once on bank, cannot revert to HDB concessionary. Weigh savings vs flexibility.<br><br><strong>Typical savings 2026:</strong> Bank 1.7% vs HDB 2.6% = ~$3,600/year on $400K loan.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#D97706;background:rgba(217,119,6,0.08)">Loans & Finance</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Can buyer refinance bank loan to HDB loan?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">No. Once on bank loan, cannot switch back to HDB.One-way rule. This is why first-time HDB loan selection matters.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#D97706;background:rgba(217,119,6,0.08)">Loans & Finance</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is an IPA (In-Principle Approval)?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Bank's conditional loan approval. Shows buyer how much bank will lend. Valid 30–90 days.Not binding. Bank can still reject at formal application if circumstances change. Useful for shortlisting flats realistically.<br><br><strong>Different from HFE:</strong> HFE is for HDB loan; IPA is for bank loan.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#D97706;background:rgba(217,119,6,0.08)">Loans & Finance</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What's the interest rate stress test?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Banks must assess at 4% residential / 5% non-residential for TDSR, not current rate.So even if actual rate is 1.7%, bank calculates your TDSR using 4%. This is why income required for bank loan looks higher than expected.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#D97706;background:rgba(217,119,6,0.08)">Loans & Finance</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Bridge loan — when useful?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">For upgraders: bridge loan covers downpayment of new property while waiting for old property sale.Typically 6-month tenure, interest 4–6%. Secured against the buyer's existing property. Tight TDSR calculation.<br><br><strong>Alternative:</strong> sell existing HDB first, rent temporarily, buy new. Cleaner but more disruptive.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#D97706;background:rgba(217,119,6,0.08)">Loans & Finance</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STAMP DUTY & TAX ═══ -->
+    <div class="workflow-section" data-workflow="stamp">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#0D9488"></span>
+        Stamp Duty & Tax
+        <span class="workflow-count" id="count-stamp"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Buyer's Stamp Duty (BSD) rates
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Tiered: 1% → 6%. On purchase price OR valuation, whichever higher.First $180K: 1%<br>Next $180K: 2%<br>Next $640K: 3%<br>Next $500K: 4%<br>Next $1.5M: 5%<br>Above $3M: 6%<br><br><strong>Example $1M property:</strong> $1,800 + $3,600 + $19,200 = $24,600<br><br>BSD payable by CPF OA.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#0D9488;background:rgba(13,148,136,0.08)">Stamp Duty & Tax</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Quick BSD calculation shortcut
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">For price up to $1M: BSD ≈ 3% × Price − $5,400<strong>Examples:</strong><br>$500K → 3% × 500K − 5,400 = $9,600<br>$800K → 3% × 800K − 5,400 = $18,600<br>$1M → 3% × 1M − 5,400 = $24,600<br><br>Above $1M: add 4% bracket manually or use IRAS calculator.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#6366F1;background:rgba(99,102,241,0.08)">Calculations</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          ABSD rates — complete table
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">SC: 0% / 20% / 30% | PR: 5% / 30% / 35% | Foreigner: 60% | Entity: 65%<strong>SG Citizen:</strong> 1st 0%, 2nd 20%, 3rd+ 30%<br><strong>SG PR:</strong> 1st 5%, 2nd 30%, 3rd+ 35%<br><strong>Foreigner:</strong> flat 60% (all)<br><strong>Entity:</strong> 65% (+ 35% non-remittable)<br><br>ABSD is ON TOP of BSD. Payable by CPF OA.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#0D9488;background:rgba(13,148,136,0.08)">Stamp Duty & Tax</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          ABSD remission for married couples
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Pay 20% ABSD upfront. Sell first property within 6 months of new purchase. Apply for refund from IRAS.<strong>Conditions:</strong><br>1. Married couple, at least 1 SC spouse<br>2. Bought jointly in both names<br>3. Did not own >1 property at date of purchase<br>4. First property sold within 6 months (of completion, or 6 months of TOP if new)<br>5. Must remain married, no ownership change on 2nd property<br>6. Apply for refund within 6 months of sale<br><br><strong>No extensions.</strong></div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#0D9488;background:rgba(13,148,136,0.08)">Stamp Duty & Tax</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Single SC senior (55+) ABSD refund — new rule
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">From 16 Feb 2024: single SC seniors 55+ can claim ABSD refund when rightsizing to lower-value property.<strong>Conditions:</strong><br>• Each first property solely owned by single SC 55+ (or with immediate family who are also single SC 55+)<br>• Owners of first property must also be on 2nd property<br>• Pay ABSD upfront, apply for refund after selling first<br><br><strong>Purpose:</strong> supports seniors right-sizing for retirement.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#0D9488;background:rgba(13,148,136,0.08)">Stamp Duty & Tax</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Seller's Stamp Duty (SSD) — NEW rates from 4 Jul 2025
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Now 4-year holding period. Rates: 16% / 12% / 8% / 4% / 0%.<strong>Properties bought on/after 4 July 2025:</strong><br>≤1 year: 16%<br>≤2 years: 12%<br>≤3 years: 8%<br>≤4 years: 4%<br>&gt;4 years: 0%<br><br><strong>Properties bought 11 Mar 2017 – 3 Jul 2025:</strong> old 3-year rule still applies (12/8/4/0).<br><br><strong>HDB sellers:</strong> MOP (5 yrs) > SSD period (4 yrs), so effectively never pay SSD.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#0D9488;background:rgba(13,148,136,0.08)">Stamp Duty & Tax</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          SSD — does it apply to HDB sellers?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">In practice no. MOP (5 years) exceeds SSD period (4 years), so HDB sellers don't pay.Exception: HDB flat owners identified under SERS who sell before HDB claims — still exempt. Private property sellers: SSD applies in full.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#0D9488;background:rgba(13,148,136,0.08)">Stamp Duty & Tax</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Mortgage stamp duty
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">0.4% of loan amount, capped at $500.Paid by buyer. Can be paid by CPF OA. Applies to both HDB and bank loans.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#0D9488;background:rgba(13,148,136,0.08)">Stamp Duty & Tax</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Tenancy stamp duty
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">0.4% × total rent for lease up to 4 years. 0.4% × 4× annual rent for lease >4 years.Paid by tenant. Must be stamped within 14 days (executed in SG) or 30 days (overseas). Pay via IRAS e-Stamping.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#0D9488;background:rgba(13,148,136,0.08)">Stamp Duty & Tax</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Stamp duty for decoupling
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Transferring owner pays BSD on market value of share transferred.<strong>Example:</strong> $1.5M property, wife transfers 50% to husband. BSD on $750K = ~$17,100.<br>Plus legal fees $3–5K, potential CPF refund on transferred share.<br><br><strong>Worth it?</strong> Only if ABSD savings on next property > decoupling cost.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#0D9488;background:rgba(13,148,136,0.08)">Stamp Duty & Tax</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ UPGRADERS (HDB → CONDO) ═══ -->
+    <div class="workflow-section" data-workflow="upgrader">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#0891B2"></span>
+        Upgraders (HDB → Condo)
+        <span class="workflow-count" id="count-upgrader"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          HDB → condo upgrader math — the big picture
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Sell HDB first = cleaner but need temp housing. Buy condo first = pay 20% ABSD upfront, refund after selling HDB within 6 months.<strong>Sell first path:</strong><br>1. Sell HDB, get cash + CPF refund<br>2. Rent temporarily (3–6 months)<br>3. Buy condo as FIRST property → no ABSD<br><strong>Cleaner. Slower.</strong><br><br><strong>Buy first path:</strong><br>1. Buy condo → pay 20% ABSD upfront<br>2. Sell HDB within 6 months of condo purchase<br>3. Apply ABSD refund within 6 months of HDB sale<br><strong>Faster. Needs 20% cash buffer.</strong></div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#0891B2;background:rgba(8,145,178,0.08)">Upgrader</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          HDB upgrader — total cash needed for condo upgrade?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Rough rule: ~40–50% of condo price in liquid funds (cash + CPF) during transition.<strong>Breakdown for $1.5M condo:</strong><br>• 5% cash downpayment: $75K<br>• 20% CPF/cash: $300K<br>• ABSD 20% upfront: $300K (refundable)<br>• BSD: $44K<br>• Legal + misc: $10K<br><strong>Total upfront:</strong> ~$730K<br>• After HDB sale + ABSD refund: most returns<br>• Net bridge gap: ~$400K cash for ~6 months.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#0891B2;background:rgba(8,145,178,0.08)">Upgrader</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Can client keep HDB and buy condo?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Only after MOP fulfilled. And must pay 20% ABSD on condo (no refund unless you sell HDB within 6 months).<strong>Keep HDB + buy condo:</strong><br>• Must wait 5-yr MOP (10 for Plus/Prime)<br>• 20% ABSD locked in (not refundable if keeping HDB)<br>• CPF restrictions: BRS or FRS set aside for 2nd property<br>• HDB becomes rental asset (subject to EIP/SPR quota for tenants)<br><br><strong>Trade-off:</strong> passive rental income vs. $300K+ ABSD cost.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#0891B2;background:rgba(8,145,178,0.08)">Upgrader</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is decoupling? When to use it?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">One spouse transfers share to the other, freeing the transferee to buy 2nd property at first-property ABSD rates.<strong>How:</strong> Part-transfer via lawyer. BSD on transferred share. CPF refund on transferred share.<br><strong>Cost:</strong> BSD (tiered) + legal $3–5K + CPF refund complications.<br><br><strong>Worth it when:</strong> ABSD savings on next property > total decoupling cost. Usually for families buying $1.5M+ condos.<br><br><strong>Note:</strong> HDB flats cannot be decoupled (since Apr 2016) — only private.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#0891B2;background:rgba(8,145,178,0.08)">Upgrader</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Condo owner wants to DOWNGRADE to HDB — what rules?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Must sell condo first. Wait 15 months (if under 55). Then can buy HDB resale.<strong>15-month wait-out (from 30 Sep 2022):</strong><br>• Applies if under 55<br>• Counted from legal completion of condo sale<br>• Only for buying non-subsidised HDB resale<br><br><strong>Exemption:</strong> 55+ buying 4-room or smaller resale flat.<br><br>Also: no CPF grants during wait-out. And 30-month rule for grants still applies separately.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#0891B2;background:rgba(8,145,178,0.08)">Upgrader</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          15-month wait-out — how does it work in detail?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Count starts from legal completion date of private property sale. During 15 months: cannot buy non-subsidised HDB resale.<strong>Can still do during wait-out:</strong><br>• Rent<br>• Apply for HFE (but can't complete purchase)<br><br><strong>Cannot do:</strong><br>• Buy resale HDB<br>• Apply BTO as first-timer with full grants<br><br><strong>Fully privatised EC = private property</strong> for this rule. Non-privatised EC has different rules.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#0891B2;background:rgba(8,145,178,0.08)">Upgrader</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          30-month rule — different from 15-month?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Yes. Two separate rules, often confused.<strong>15-month wait-out:</strong> private → HDB resale buy. Under 55.<br><strong>30-month rule:</strong> must not have OWNED any private property in the 30 months BEFORE HFE application — for CPF grant eligibility or BTO as first-timer.<br><br><strong>Plus flat 30-month wait:</strong> private property owners wait 30 months before buying Plus flat on resale market.<br><br>All three exist. Don't mix them up.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#0891B2;background:rgba(8,145,178,0.08)">Upgrader</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Client owns inherited condo + wants to buy HDB — options?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Must dispose of condo first. Then 15-month wait (if under 55). Then HDB.Same rules as any private property ownership. Inheritance doesn't exempt. If inheritor's family lives in inherited condo, may apply for HDB exception — case-by-case.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#0891B2;background:rgba(8,145,178,0.08)">Upgrader</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          ABSD refund — what can go wrong?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Missing 6-month deadline. Ownership change. New property purchase. Divorce during period.<strong>Common mistakes:</strong><br>1. Sell first property AFTER 6 months → refund lost<br>2. Transfer partial ownership of new property → disqualified<br>3. Buy 3rd property in between → disqualified<br>4. Divorce during period → disqualified<br>5. Refund application not within 6 months of sale<br><br><strong>Advise:</strong> line up HDB sale BEFORE condo OTP to be safe.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#0891B2;background:rgba(8,145,178,0.08)">Upgrader</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Sell-before-buy — where to live during gap?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Options: rent, stay with family, holiday lease. Plan 3–6 months.Some buyers negotiate 'stay-as-tenant' with their own HDB buyer for 1–3 months (at market rent) to bridge. Must be in SPA.<br><br>Others use 'extension of lease' with condo developer if buying new launch — move in later.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#0891B2;background:rgba(8,145,178,0.08)">Upgrader</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ SENIORS (55+) ═══ -->
+    <div class="workflow-section" data-workflow="senior">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#B45309"></span>
+        Seniors (55+)
+        <span class="workflow-count" id="count-senior"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Lease Buyback Scheme (LBS) — eligibility
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Both owners 65+, SC, income ≤$14K, flat fully paid or pay-off from sale, lived in flat 5+ years, lease ≥20 years remaining.Any flat type except: short-lease flats, HUDC, EC.<br><br><strong>Choose lease retention:</strong> 15, 20, 25, 30, or 35 years (must cover youngest owner to 95).</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#B45309;background:rgba(180,83,9,0.08)">Senior 55+</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          LBS — how much cash do seniors get?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Proceeds pay off any loan first. Then top-up CPF RA. Then LBS bonus ($7,500–$30,000). Then balance cash (capped $100K).<strong>LBS bonus by flat type:</strong><br>3-room or smaller: up to $30K<br>4-room: up to $15K<br>5-room+: up to $7,500<br><br><strong>From 1 Jan 2026:</strong> households with 1 owner top up to age-adjusted FRS. 2+ owners top up to BRS each. Full bonus if total top-up ≥$60K.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#B45309;background:rgba(180,83,9,0.08)">Senior 55+</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Silver Housing Bonus (SHB) — what is it?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Bonus (up to $40K from 1 Dec 2025) for seniors 55+ who downgrade to 3-room or smaller flat.<strong>Conditions:</strong><br>• Must be 55+<br>• Commit up to $60K net increase in CPF RA<br>• Can use CPF housing refunds (no cash top-up needed if sufficient)<br>• Cash bonus up to $30K<br>• Additional $10K bonus if rightsize to 2-room or smaller<br><br><strong>Cannot combine with LBS</strong> — pick one.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#B45309;background:rgba(180,83,9,0.08)">Senior 55+</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          LBS vs SHB vs rent out spare rooms — which is best?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">LBS for seniors who want to stay. SHB for those willing to move. Room rental for flexible cash flow.<strong>LBS:</strong> stay in flat, monthly CPF LIFE payouts, can't sell later.<br><strong>SHB:</strong> move to smaller flat, cash bonus, keep full ownership.<br><strong>Room rental:</strong> keep flat, monthly rental income, no CPF commitment.<br><br>Can combine: SHB for downgrade, then rent spare room later.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#B45309;background:rgba(180,83,9,0.08)">Senior 55+</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          2-room Flexi short-lease for seniors
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">For seniors 55+. Lease 15–45 years. Fully-priced using CPF refunds or cash.Cannot be rented out (bedroom or whole flat). Cannot be sold in open market. No subsidy clawback.<br><br>Designed for elderly who want small, affordable home and don't need full 99-year lease.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#B45309;background:rgba(180,83,9,0.08)">Senior 55+</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Community Care Apartment — what is it?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Assisted-living flat for seniors 65+ integrated with care services.2-room Flexi style. Lease 15–35 years. Includes care plan, 24-hr emergency response, communal spaces. Not sellable on open market.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#B45309;background:rgba(180,83,9,0.08)">Senior 55+</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Can senior parents join child's HDB application?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Yes under Multi-Generation scheme. $21K income ceiling, 3Gen flats available.3Gen flats: for family nucleus + at least 1 parent or grandparent. 4+ bedrooms. Available in BTO launches.<br><br>Alternative: parents as 'occupiers' on regular flat application. They don't own but must live there.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#B45309;background:rgba(180,83,9,0.08)">Senior 55+</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ DIVORCE, DEATH & INHERITANCE ═══ -->
+    <div class="workflow-section" data-workflow="divorce-death">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#991B1B"></span>
+        Divorce, Death & Inheritance
+        <span class="workflow-count" id="count-divorce-death"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Divorced client wants to buy HDB — can they?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Yes, but depends on custody and age.<strong>Divorced + child custody:</strong> any flat type (child as occupier)<br><strong>Divorced, 35+, no child:</strong> 2-room Flexi (new) or up to 5-room resale<br><strong>Divorced, under 35, no child:</strong> cannot buy as single<br><br><strong>Warning:</strong> must wait 30 MONTHS from divorce completion before eligible for HDB.<br><strong>If ex-spouse still on flat:</strong> settle ownership first.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#991B1B;background:rgba(153,27,27,0.08)">Divorce/Family</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Can one spouse keep the HDB after divorce?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Yes with court order + HDB approval. Other spouse must be removed from title.<strong>Options:</strong><br>1. One takes over (part-transfer or whole transfer)<br>2. Both sell to third party<br>3. HDB sells back (rare)<br><br>Transferring spouse may need to refund CPF. Remaining spouse must independently meet income/eligibility for retained flat.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#991B1B;background:rgba(153,27,27,0.08)">Divorce/Family</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          MOP + divorce — any waiver?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Yes, case-by-case. HDB may allow sale during MOP for divorce hardship.Apply in writing with court documents. Typical conditions: finalised divorce, genuine inability to continue joint ownership, agreed settlement plan. No guarantees.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#991B1B;background:rgba(153,27,27,0.08)">Divorce/Family</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Death of owner — what happens to HDB?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Transfer to surviving owner (joint tenancy) or per will (tenancy-in-common).<strong>Joint tenancy:</strong> survivor automatically inherits.<br><strong>Tenancy-in-common:</strong> deceased's share transfers per will or intestacy.<br><br>Survivor must independently meet eligibility to retain. If not, may need to sell (MOP waived in death).</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#44403C;background:rgba(68,64,60,0.08)">Death/Inheritance</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What's the difference between joint tenancy and tenancy-in-common?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Joint tenancy: all own 100% together. Tenancy-in-common: each owns defined % share.<strong>Joint tenancy:</strong> on death, share automatically goes to surviving owner (no probate for this portion).<br><strong>Tenancy-in-common:</strong> on death, deceased's share goes via will or intestacy. More flexible but needs probate.<br><br>HDB default is usually joint tenancy for couples. Can change with lawyer.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#44403C;background:rgba(68,64,60,0.08)">Death/Inheritance</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          CPF nomination — why it matters for HDB owners
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">CPF savings (including refunds on sale) pass via CPF nomination, NOT the will.Default intestacy rules apply if no nomination. Nominate via my.cpf.gov.sg. Important for sellers: CPF refund on sale eventually becomes nominated funds.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#44403C;background:rgba(68,64,60,0.08)">Death/Inheritance</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Client inherited HDB from parent — can they keep it?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Only if they're eligible to own HDB (SC, meets eligibility scheme).<strong>If inheritor already owns HDB:</strong> must dispose of one within 6 months.<br><strong>If inheritor owns private:</strong> dispose of inherited HDB (can't own both).<br><strong>If inheritor doesn't meet HDB eligibility:</strong> must sell inherited.<br><br>MOP of inheritor counted from original owner's key collection, not inheritance date.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#44403C;background:rgba(68,64,60,0.08)">Death/Inheritance</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Spouse dies during MOP — can survivor sell?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Yes. MOP waived in death. Survivor can sell immediately.Also: can retain flat and marry again without MOP issue. Must still meet other HDB rules (EIP, etc.).<br><br>Survivor retains original MOP for future flat applications.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#44403C;background:rgba(68,64,60,0.08)">Death/Inheritance</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ RENTAL & LANDLORD ═══ -->
+    <div class="workflow-section" data-workflow="rental">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#EA580C"></span>
+        Rental & Landlord
+        <span class="workflow-count" id="count-rental"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          HDB subletting rules — what landlords must know
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Get HDB approval BEFORE subletting. MOP fulfilled. Min 6-month tenancy. Max 6 persons in flat.<strong>Whole flat subletting:</strong> MOP fulfilled (5yr for Standard, 10yr for Plus/Prime — though Plus/Prime ban whole-flat rental). Owner can live elsewhere.<br><strong>Room rental:</strong> owner must continue living in flat.<br><br>Non-Malaysian work permit holders CANNOT rent HDB. EIP quota still applies.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#EA580C;background:rgba(234,88,12,0.08)">Rental</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Who can rent HDB?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">SCs, PRs, EP/S Pass holders, Malaysian Work Permit holders, Student Pass, Dependant's Pass, LTVP.<strong>CANNOT rent HDB:</strong><br>• Work Permit (non-Malaysian)<br>• Training Work Permit<br>• Tourists / short-term visitors<br><br>Subject to occupancy cap (6 persons/flat) + EIP quota.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#EA580C;background:rgba(234,88,12,0.08)">Rental</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Standard rental commission rates
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Half month (1-year lease) / 1 month (2-year lease). Paid by party agent represents.<strong>HDB rental:</strong> landlord pays landlord's agent, tenant pays tenant's agent (usually same % each).<br><strong>Luxury condo:</strong> some negotiate higher.<br><br>CEA rule: agent collects from ONE party only per transaction.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#EA580C;background:rgba(234,88,12,0.08)">Rental</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Tenancy Agreement — essential clauses
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Rent amount, security deposit, lease duration, diplomatic clause, maintenance, minor repair, inventory, termination, number of occupants.<strong>Standard terms:</strong><br>• Security deposit: 2 months<br>• Lease: 1 or 2 years<br>• Diplomatic clause: allows early termination after 12 months, 2 months notice (for 2-year lease)<br>• Minor repair: tenant pays first $150–$200<br><br>Stamp duty: tenant pays. 0.4% × total rent (up to 4-year lease).</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#EA580C;background:rgba(234,88,12,0.08)">Rental</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Diplomatic clause — what is it?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Allows tenant (usually expat) to terminate lease early if relocated overseas or employment terminated.<strong>Typical terms:</strong><br>• Kicks in after 12 months (2-yr lease) or 6 months (1-yr)<br>• 2 months written notice<br>• Proof required (transfer letter / termination letter)<br><br>Without this clause: tenant pays remaining rent or negotiates penalty.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#EA580C;background:rgba(234,88,12,0.08)">Rental</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Landlord's obligations under HDB subletting
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Register sublet with HDB. Inform of any changes. Ensure tenants meet eligibility. Pay income tax on rental.<strong>Timeline:</strong> register within 7 days of tenancy start. Free registration on HDB e-Service.<br><strong>Rental income:</strong> declarable to IRAS. Deductible expenses: property tax, maintenance, agent commission.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#EA580C;background:rgba(234,88,12,0.08)">Rental</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Can landlord evict tenant early?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Only for breach of contract (non-payment, illegal use, subletting without consent). Must follow legal process.Standard process:<br>1. Written notice of breach<br>2. Grace period to rectify<br>3. If not rectified: terminate lease<br>4. If tenant refuses to leave: civil court claim for possession<br><br>Cannot just change locks or enter without notice.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#EA580C;background:rgba(234,88,12,0.08)">Rental</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Owner living overseas — can rent out whole HDB?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Only after MOP, with HDB approval. Each approval is time-limited.Must apply each renewal. HDB may grant 1–3 year approvals. Plus/Prime flats: whole-flat rental banned even after MOP.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#EA580C;background:rgba(234,88,12,0.08)">Rental</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ PR / FOREIGNER / SPECIAL STATUS ═══ -->
+    <div class="workflow-section" data-workflow="pr">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#BE185D"></span>
+        PR / Foreigner / Special Status
+        <span class="workflow-count" id="count-pr"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Single PR — can they buy any HDB?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">No. Single PR cannot buy HDB flat at all.Must form family nucleus (2 PRs OR 1 SC + 1 PR) to buy HDB. Single PR must rent, buy private, or wait to become SC.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#BE185D;background:rgba(190,24,93,0.08)">PR/Foreigner</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          SC married to foreigner — can buy HDB?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Yes under Non-Citizen Spouse Scheme. Resale only, no BTO.<strong>Conditions:</strong><br>• SC must be 21+<br>• Foreigner spouse must hold valid pass (LTVP, work pass, etc.)<br>• Apply under Non-Citizen Spouse Scheme<br>• $10K premium (refunded if spouse becomes SC/PR or couple has child)<br><br>Grant amount = singles level (lower than SC+PR or SC+SC).</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#BE185D;background:rgba(190,24,93,0.08)">PR/Foreigner</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Overseas property ownership — how does HDB check?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Self-declaration at HFE application. HDB may request supporting documents.<strong>Must declare all:</strong> residential property owned anywhere (SG + overseas). Includes: condo, landed, shophouse, HUDC, inherited property, properties held in trust.<br><br><strong>Must dispose 30 months before HFE</strong> if previously owned private property anywhere.<br><br>Non-disclosure is a criminal offence.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#BE185D;background:rgba(190,24,93,0.08)">PR/Foreigner</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Can PR use Malaysian/overseas CPF for HDB?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">No. Only Singapore CPF can be used for HDB purchase.Malaysian EPF, overseas pension funds, etc. cannot be used. Only own liquid assets (cash) + Singapore CPF OA.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#BE185D;background:rgba(190,24,93,0.08)">PR/Foreigner</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Foreigner wants to buy HDB — can they?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">No. HDB is only for SC or PR (with family nucleus).Foreigners can only buy private property (with 60% ABSD). Renting HDB is allowed if holding eligible pass.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#BE185D;background:rgba(190,24,93,0.08)">PR/Foreigner</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Spouse becomes SC during MOP — what changes?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Apply for Citizen Top-Up Grant (CTU). $10K premium refunded.Also: previously reduced grants (SC+PR) can't be topped up to SC+SC level. Only $10K premium refunds.<br><br>Note: ethnic/SPR quota treatment may change — the household reclassifies as SC+SC.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#BE185D;background:rgba(190,24,93,0.08)">PR/Foreigner</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TRICKY SCENARIOS ═══ -->
+    <div class="workflow-section" data-workflow="tricky">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#DB2777"></span>
+        Tricky Scenarios
+        <span class="workflow-count" id="count-tricky"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Buyer age 30 buying flat with 55-yr lease — what happens to CPF?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">30 + 55 = 85 < 95. CPF pro-rated to 77.8% of VL.<strong>Calculation:</strong> (55−20) ÷ (95−30−20) = 35/45 = 77.8%<br>If VL $400K → max CPF ~$311K.<br>HDB loan LTV also pro-rated: 77.8% × 75% = 58.3%.<br><br><strong>Warning:</strong> client needs much more cash. Consider newer flat or older co-buyer.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Buyer 26 + parent co-buyer 60 — which age used for CPF?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Youngest buyer's age. So 26 is used.26 + remaining lease ≥ 95? That's the test.<br><strong>Tip:</strong> adding older co-buyer helps with income for loan, doesn't hurt CPF (since youngest age matters).</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Client can only afford flat with <20yr lease — can they?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Possible but difficult. CANNOT use CPF. CANNOT get HDB loan. No grants.Must pay cash + bank loan (if bank willing — most won't lend on <20yr lease).<br><br><strong>Strongly advise against</strong> unless client fully understands: no CPF, no grants, depreciating asset.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Overseas Singaporean wants to buy BTO — possible?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Generally no. BTO requires at least 1 SC + physical presence for key collection.<strong>Workaround:</strong> buy resale remotely via Power of Attorney. Resale has more flexibility.<br><br>Advise overseas SCs: 'Consider resale instead of BTO while abroad.'</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Client's spouse declared bankrupt — impact on HDB?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Major impact on loan. HDB loan: likely disqualified. Bank loan: very difficult.<strong>If already owning HDB:</strong> generally allowed to keep. But refinancing, 2nd property, CPF usage may be affected.<br><strong>If buying new HDB:</strong> bankrupt spouse can be occupier but usually not applicant. Income assessment changes.<br><br>Case-by-case. Must disclose at HFE application.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Client wants to add/remove person from existing HDB — how?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">HDB ownership change application. Needs all owners' consent + HDB approval.<strong>Types:</strong><br>• Part-transfer (add someone)<br>• Withdrawal (remove someone, if eligible)<br>• Gift transfer (within family, BSD applies)<br><br>Conditions: remaining owners must independently meet eligibility. CPF refund may be triggered on transferred share.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Flat was bought via BTO years ago — can change to Tenancy-in-Common?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Yes via 'Manner of Holding' change. Apply to HDB + legal work.Useful for estate planning. Converts joint tenancy to tenancy-in-common with specified shares (e.g., 70/30, 50/50).<br><br>Does not trigger CPF refund if no ownership change (same owners, just new structure).</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What counts as 'family nucleus' for HDB?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Married couple, engaged couple, parent+unmarried child, siblings (both SC), single + parents.<strong>Eligibility schemes:</strong><br>• Public Scheme (married/engaged)<br>• Fiancé/Fiancée Scheme (engaged, must marry within 3 months of key collection)<br>• Single Singapore Citizen Scheme<br>• Joint Singles Scheme (2–4 singles together)<br>• Non-Citizen Spouse Scheme<br>• Orphans Scheme</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Same-sex couple — can they buy HDB?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Not as couple. Must use Joint Singles Scheme (both 35+) or each apply separately.Cannot form family nucleus as 'couple' under HDB rules. Under Joint Singles Scheme (2 singles together), both must be 35+.<br><br>Alternatively: one buys as single, the other as occupier.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          HDB mistake on my side — how to appeal?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Write to HDB via HDB e-Feedback with documentation. Takes 2–6 weeks.If relating to BTO rejection: appeal within 1 month of result. For other issues: no fixed timeline but act quickly. Always keep written proof.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ AGENT BASICS & COMPLIANCE ═══ -->
+    <div class="workflow-section" data-workflow="agent">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#4F46E5"></span>
+        Agent Basics & Compliance
+        <span class="workflow-count" id="count-agent"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Standard commission rates in Singapore
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Selling HDB resale: ~2%. Condo: 2-4%. Landed: 2%+. Rental: 0.5-1 month's rent. All negotiable.<strong>Seller agent (HDB):</strong> typically 2% of selling price.<br><strong>Buyer agent (HDB):</strong> typically 1% from buyer.<br><strong>Private:</strong> 2–4% from seller, often 0% from buyer (co-broke split).<br><strong>Rental:</strong> 1 month (2-yr lease), half month (1-yr lease).<br><br><strong>Rule:</strong> Agent collects from ONE party only per transaction.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#4F46E5;background:rgba(79,70,229,0.08)">Agent Basics</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          CEA rules every agent must follow
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Display CEA card. No handling client money. No dual representation. Use prescribed agreements. Declare conflicts. Complete CPD hours.<strong>Top violations:</strong><br>1. Handling transaction monies (deposits, exercise fees)<br>2. Dual representation (both buyer + seller)<br>3. Misleading claims about property<br>4. Not issuing estate agency agreement<br>5. Missing CPD hours<br><br><strong>Penalties:</strong> fines, suspension, revocation.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#6B21A8;background:rgba(107,33,168,0.08)">Compliance</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What money can agent handle?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Only: valuation fees, own commission. NEVER transaction monies.<strong>CANNOT handle:</strong><br>• Option money / exercise fee<br>• Deposits<br>• Stamp duty payments<br>• Any buyer–seller money<br><br>These must go directly between parties or via lawyers' escrow. Holding client money = serious CEA violation.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#6B21A8;background:rgba(107,33,168,0.08)">Compliance</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is co-broking?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Buyer's agent and seller's agent share commission. Common for private property.<strong>Private property:</strong><br>• Seller pays 2–4% total<br>• Seller's agent shares with buyer's agent<br>• Buyer pays $0<br><br><strong>HDB resale:</strong><br>• Seller pays own agent (~2%)<br>• Buyer pays own agent (~1%)<br>• No sharing — each collects from own client<br><br><strong>Must use CEA Prescribed Estate Agency Agreement.</strong></div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#4F46E5;background:rgba(79,70,229,0.08)">Agent Basics</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is CPD and what's required?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Continuing Professional Development — mandatory yearly hours for registered agents.Covers: ethics, property law updates, CPF/HDB policy changes, professional skills. Tracked by CEA. Failure may affect registration renewal.<br><br><strong>Also:</strong> changes to HDB rules (like Aug 2024 LTV, Jul 2025 SSD) are typically covered in CPD modules.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#6B21A8;background:rgba(107,33,168,0.08)">Compliance</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Essential GOV.SG links to bookmark
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">CPF Calculator, HDB Resale Portal, IRAS Stamp Duty, MAS Loan Rules, CEA Register.<strong>CPF Housing Calculator:</strong> cpf.gov.sg/member/tools-and-services/calculators/cpf-housing-usage<br><strong>HDB Resale Portal:</strong> hdb.gov.sg/residential/buying-a-flat/buying-procedure-for-resale-flats<br><strong>IRAS Stamp Duty:</strong> iras.gov.sg/taxes/stamp-duty<br><strong>MAS Loan Rules:</strong> mas.gov.sg/regulation/explainers/property-loan-rules<br><strong>CEA Public Register:</strong> cea.gov.sg/public-register<br><strong>CPF Online:</strong> my.cpf.gov.sg<br><strong>HDB e-Services:</strong> hdb.gov.sg → Services Hub</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#4F46E5;background:rgba(79,70,229,0.08)">Agent Basics</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Quick formula — buyer's total upfront cost
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Downpayment (cash + CPF) + BSD + ABSD + Legal ~$3-5K + Mortgage stamp + Valuation fee + Agent commission = Total.Always break this down for every buyer at first meeting. Shock of 'I thought I had enough' kills deals.<br><br><strong>Rule of thumb:</strong> budget 30% of flat price as liquid upfront (cash + CPF).</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#6366F1;background:rgba(99,102,241,0.08)">Calculations</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Quick formula — seller's net cash
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Selling Price − Outstanding Loan − CPF P+I (all owners) − Agent commission (~2%) − Legal fees (~$2-3K) − SSD (if any) = Net cashRun this for every seller. Many think 'I bought for $400K, selling $600K, I get $200K cash'. Actual cash often 10–30% of that after CPF refund.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#6366F1;background:rgba(99,102,241,0.08)">Calculations</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Quick formula — monthly mortgage estimate
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">~$4.50 per $1,000 borrowed at 3% / 25yr. ~$4.30 at 2.6% (HDB loan).<strong>Examples (25-year, ~3%):</strong><br>$500K loan ≈ $2,250/month<br>$750K loan ≈ $3,375/month<br>$1M loan ≈ $4,500/month<br><br>For bank loan 2026 (~1.7%): roughly $4,100 / $1M. Rule of thumb only — use bank calculator for exact.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#6366F1;background:rgba(99,102,241,0.08)">Calculations</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Client refuses to sign estate agency agreement — what do I do?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Don't proceed. CEA mandates the agreement. No agreement = no commission protection.<strong>Prescribed agreements:</strong><br>• Exclusive/non-exclusive seller appointment<br>• Buyer/tenant appointment<br><br>Without agreement: you have no contractual basis to claim commission. Also: CEA audits can flag you for non-compliance.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#6B21A8;background:rgba(107,33,168,0.08)">Compliance</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Agent says seller's 'reserve price' — is that binding?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Only if seller signs exclusive listing agreement with specified reserve.Verbal 'reserve' means nothing. Always get in writing. Even then: seller can withdraw anytime (subject to commission penalty).<br><br>Different from developer 'reserve price' for new launches — that's a public record.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#6B21A8;background:rgba(107,33,168,0.08)">Compliance</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          How long should agents keep records?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">5 years for all transaction-related documents (CEA rule).Includes: estate agency agreements, client correspondence, commission invoices, ID copies, advertisements. Digital OK. CEA can audit anytime.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#6B21A8;background:rgba(107,33,168,0.08)">Compliance</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ EDGE CASES & MARKET CONTEXT ═══ -->
+    <div class="workflow-section" data-workflow="edge">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#6B21A8"></span>
+        Edge Cases & Market Context
+        <span class="workflow-count" id="count-edge"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          HDB shop flat — different from residential?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Yes. Shop flats (commercial/mixed-use HDB) have different rules.No MOP, no income ceiling, can be owned by companies. Cannot use CPF. No grants. ABSD + property tax treated as commercial.<br><br>Agents handling HDB shop flats need different expertise — mostly commercial leasing experience.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is SERS?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Selective En-bloc Redevelopment Scheme. HDB acquires old estates for redevelopment; owners get compensation + priority for new flats.<strong>Compensation:</strong> market valuation of flat at acquisition date.<br><strong>Rehousing:</strong> priority to buy new flat in designated replacement site at subsidised prices.<br><strong>Timeline:</strong> 6+ years from announcement to move-out.<br><br>Identified before key acquisition dates. Check HDB announcements.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          VERS — the voluntary version?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Voluntary Early Redevelopment Scheme. For flats 70+ years old. Residents vote on early redevelopment.Announced 2018, first tranches expected from mid-2020s. Vote required: supermajority of residents. If approved: HDB acquires at market valuation.<br><br>Different from SERS — VERS is voluntary and for much older flats.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What's HIP (Home Improvement Programme)?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Optional HDB-funded upgrade for older flats: toilets, pipes, structural.2 tiers: essential (mandatory if voted in) + optional (owner co-pays). HDB subsidises bulk. CPF OA usable for HIP co-payment.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          MUP (Main Upgrading Programme) — still relevant?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Mostly replaced by HIP. Older blocks completed MUP in 2000s-2010s.If flat had MUP: costs paid via CPF OA over time. Outstanding balance transfers to buyer on resale (usually built into price).</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Can owner renovate without approval?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Minor interior — yes. Structural / external — need HDB permit.<strong>Need permit:</strong> hacking walls, bathroom/kitchen upgrade, electrical rewiring, flooring (certain types), ceiling works.<br><strong>No permit:</strong> painting, fixtures, small built-ins.<br><br>Unauthorised works = HDB can order reinstatement + fines. All renovation must be by HDB-licensed contractor.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          When to tell buyer about renovation costs?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">At first meeting. Budget $20K (minor) to $60K+ (full reno) for HDB resale.<strong>Typical HDB resale reno budget 2026:</strong><br>• Minimal (paint, fixtures): $10–20K<br>• Moderate (kitchen, bath, floors): $30–50K<br>• Full renovation: $50–80K<br>• Luxury/custom: $100K+<br><br>Not claimable via CPF. Some banks offer renovation loans (~4–6%).</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Million-dollar HDB — what's the reality in 2026?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Record highs in 2023–2024. Q1 2026: first HDB resale price dip in ~7 years (-0.1%).Million-dollar transactions concentrated in mature estates (Queenstown, Bukit Merah, Bishan), 5-room/executive, attractive blocks.<br><br><strong>2026 market:</strong> prices cooling slightly. Supply ramping up (100,000 BTOs 2021–2025). Bank rates low (~1.7%). Good time for first-timers; upgraders should be cautious.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Valuation gap — when HDB value < price buyer willing to pay
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">This is what COV is. Buyer pays gap in cash.<strong>Example:</strong> Seller wants $650K. HDB values at $620K. COV = $30K cash only.<br><br>Some sellers refuse to lower, buyers walk. Negotiate: often meet at valuation or slight COV.<br><br>Tell buyers early: 'You may need extra cash for COV — budget buffer.'</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Valuation came in LOWER than asking — buyer's options?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">1. Negotiate seller down 2. Pay COV in cash 3. Walk away.Remember: if buyer has already exercised OTP, they're committed. Valuation comes AFTER. Options are limited.<br><br><strong>Best practice:</strong> check recent transactions BEFORE OTP to estimate valuation. Reduces surprise risk.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Resale transaction fell through — who keeps what?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Depends on WHO backed out and WHEN.<strong>Buyer fails to exercise OTP within 21 days:</strong> seller keeps option fee only.<br><strong>Buyer exercises but withdraws resale application:</strong> seller may keep deposit (up to $5K).<br><strong>Seller withdraws after OTP:</strong> must refund + potential legal action.<br><br>Agents: document everything. Never hold client money.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Agent commission dispute — what to do?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Follow CEA dispute resolution process. Document everything.<strong>Steps:</strong><br>1. Direct discussion with client<br>2. CEA dispute resolution scheme<br>3. Small Claims Tribunal (up to $30K)<br>4. Civil court for larger amounts<br><br>Key: signed estate agency agreement is your foundation. Verbal agreements = weak case.</div>
+          <div class="qa-meta">
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#6B21A8;background:rgba(107,33,168,0.08)">Compliance</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="no-results" id="noResults">
+    <p style="font-size:2rem;margin-bottom:8px">&#128269;</p>
+    <p style="font-weight:600">No results found</p>
+    <p style="font-size:12px;margin-top:4px">Try different keywords or clear your search</p>
+  </div>
+
+  <script>
+    function toggleCard(el) {
+      el.closest('.qa-card').classList.toggle('open');
+    }
+
+    function filterQuestions() {
+      const query = document.getElementById('searchInput').value.toLowerCase().trim();
+      const cards = document.querySelectorAll('.qa-card');
+      const sections = document.querySelectorAll('.workflow-section');
+      let totalVisible = 0;
+
+      cards.forEach(card => {
+        const questionText = card.querySelector('.qa-question').textContent.toLowerCase();
+        const answerText = card.querySelector('.qa-answer-content').textContent.toLowerCase();
+        const match = !query || questionText.includes(query) || answerText.includes(query);
+        card.style.display = match ? '' : 'none';
+        if (match) totalVisible++;
+      });
+
+      sections.forEach(section => {
+        const wf = section.getAttribute('data-workflow');
+        const visibleInSection = section.querySelectorAll('.qa-card:not([style*="display: none"])').length;
+        const countEl = document.getElementById('count-' + wf);
+        if (countEl) countEl.textContent = visibleInSection;
+        section.style.display = visibleInSection > 0 ? '' : 'none';
+      });
+
+      document.getElementById('resultCount').textContent = totalVisible + ' result' + (totalVisible !== 1 ? 's' : '');
+      document.getElementById('noResults').style.display = totalVisible === 0 ? 'block' : 'none';
+    }
+
+    filterQuestions();
+  </script>
+</body>
+</html>

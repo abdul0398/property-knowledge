@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HDB — Property Knowledge Base</title>
+  <style>
+    :root {
+      --bg: #fafaf9;
+      --card: #ffffff;
+      --border: #e7e5e4;
+      --text: #1c1917;
+      --muted: #78716c;
+      --warm: #c2410c;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2rem 1rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .header { margin-bottom: 2rem; }
+    .header .label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.2em; color: var(--warm); margin-bottom: 6px;
+    }
+    .header h1 { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; }
+    .header p { color: var(--muted); font-size: 0.875rem; margin-top: 6px; }
+
+    .stats { font-size: 0.75rem; font-weight: 600; color: var(--muted); margin-bottom: 1rem; }
+
+    .workflow-section { margin-bottom: 2rem; }
+    .workflow-heading {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem; border-bottom: 2px solid var(--border);
+    }
+    .workflow-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      display: inline-block; flex-shrink: 0;
+    }
+    .workflow-count {
+      font-size: 11px; font-weight: 700; background: #f5f5f4;
+      color: var(--muted); padding: 1px 8px; border-radius: 4px; margin-left: auto;
+    }
+
+    .qa-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; margin-bottom: 0.75rem; overflow: hidden;
+    }
+    .qa-question {
+      padding: 1rem 1.25rem; font-size: 13px; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; gap: 8px;
+      user-select: none; transition: color 0.15s;
+    }
+    .qa-question:hover { color: var(--warm); }
+    .qa-question .arrow {
+      margin-left: auto; flex-shrink: 0; font-size: 12px;
+      color: var(--muted); transition: transform 0.2s;
+    }
+    .qa-card.open .qa-question .arrow { transform: rotate(180deg); }
+
+    .qa-answer { display: none; padding: 0 1.25rem 1rem; }
+    .qa-card.open .qa-answer { display: block; }
+
+    .qa-answer-content {
+      background: #f5f5f4; border: 1px solid #e7e5e4; border-radius: 8px;
+      padding: 1rem; font-size: 13px; line-height: 1.8; color: #57534e;
+    }
+    .qa-answer-content strong { color: var(--text); font-weight: 600; }
+    .qa-answer-content code {
+      background: #e7e5e4; padding: 1px 6px; border-radius: 4px;
+      font-size: 11px; font-family: 'SF Mono', Monaco, monospace;
+    }
+
+    .qa-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; }
+
+    .badge {
+      display: inline-flex; align-items: center; padding: 2px 8px;
+      border-radius: 4px; font-size: 9px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .badge-high { background: #fef2f2; color: #dc2626; }
+    .badge-medium { background: #fffbeb; color: #d97706; }
+    .badge-low { background: #f5f5f4; color: #78716c; }
+    .badge-tricky { background: #fdf2f8; color: #db2777; }
+    .badge-workflow { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+
+    .source-link {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: rgba(194,65,12,0.06); color: var(--warm);
+      padding: 3px 10px; border-radius: 6px; font-size: 11px;
+      font-weight: 600; text-decoration: none; transition: background 0.15s;
+    }
+    .source-link:hover { background: rgba(194,65,12,0.12); }
+    .source-link svg { width: 12px; height: 12px; }
+
+    .search-box { position: relative; margin-bottom: 1.5rem; }
+    .search-box input {
+      width: 100%; padding: 10px 16px 10px 40px;
+      border: 1px solid var(--border); border-radius: 12px;
+      font-size: 14px; outline: none; background: var(--card);
+      transition: border-color 0.15s;
+    }
+    .search-box input:focus { border-color: var(--warm); }
+    .search-box .search-icon {
+      position: absolute; left: 14px; top: 50%;
+      transform: translateY(-50%); color: var(--muted); opacity: 0.5;
+    }
+
+    .no-results {
+      text-align: center; padding: 3rem; border: 1px solid var(--border);
+      border-radius: 12px; background: var(--card); display: none;
+    }
+    .no-results p { color: var(--muted); font-size: 14px; }
+
+    @media (max-width: 640px) {
+      body { padding: 1rem 0.75rem; }
+      .header h1 { font-size: 1.5rem; }
+      .qa-question { font-size: 12px; padding: 0.75rem 1rem; }
+      .qa-answer { padding: 0 1rem 0.75rem; }
+    }
+
+    @media print {
+      .search-box { display: none; }
+      .qa-card.open .qa-answer, .qa-answer { display: block !important; }
+      .qa-question .arrow { display: none; }
+      body { max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="label">Knowledge Base</div>
+    <h1>HDB</h1>
+    <p>Everything about HDB flats — BTO, resale, regulations, and financial planning.</p>
+  </div>
+
+  <div class="search-box">
+    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="searchInput" placeholder="Search questions, policies, scenarios..." oninput="filterQuestions()" />
+  </div>
+
+  <div class="stats" id="resultCount"></div>
+
+  <div id="questionsContainer">
+
+    <!-- ═══ MEETING A BUYER ═══ -->
+    <div class="workflow-section" data-workflow="meeting-buyer">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#059669"></span>
+        Meeting a Buyer
+        <span class="workflow-count" id="count-meeting-buyer"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What should I check BEFORE showing any property to a buyer?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Agent pre-viewing checklist:<br /><br />1. Buyer's age (youngest if multiple buyers)<br />2. Property's remaining lease<br />3. Age + Lease ≥ 95? (CPF pro-ration check)<br />4. 1st or 2nd property? (ABSD + CPF limits)<br />5. Has MOP been fulfilled? (if selling existing HDB)<br />6. Income ceiling met? (for HDB loan / grants)<br />7. Citizenship status (affects ABSD, loan, grants)<br />8. Existing outstanding loans? (affects LTV)<br />9. TDSR headroom? (total debts vs income)<br />10. CPF OA balance? (run CPF calculator)<br /><br /><strong>Tip:</strong> Do this BEFORE falling in love with a unit. Save everyone's time.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cpf.gov.sg/member/tools-and-services/calculators/cpf-housing-usage" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What are the eligibility criteria for BTO?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">- Singapore Citizen (at least 1 buyer)<br />- Age 21+ (family nucleus) or 35+ (single — 2-room Flexi only)<br />- Income ceiling: $14,000 (≤4-room) or $16,000 (5-room/exec)<br />- Must NOT own private property (local or overseas)<br />- Must not have bought 2 new HDB flats before<br />- Must form valid family nucleus<br /><br /><strong>Tip:</strong> Use HDB's eligibility checker at hdb.gov.sg</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/buying-a-flat/buying-procedure-for-new-flats" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is the HDB resale flat buying process step-by-step?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">1. Register Intent to Buy on HDB Resale Portal<br />2. Get HLE letter (HDB loan) or bank IPA letter<br />3. Find flat &amp; negotiate with seller<br />4. Seller grants OTP (Option to Purchase) — valid 21 days<br />5. Buyer exercises OTP + pays option fee ($1–$1,000)<br />6. Submit resale application on HDB portal<br />7. HDB processes (~8 weeks)<br />8. Complete transaction at HDB appointment<br /><br /><strong>Tip:</strong> Option fee for HDB resale is between $1 to $1,000 (negotiable).</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/buying-a-flat/buying-procedure-for-resale-flats" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is MOP and what are the restrictions during MOP?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>Minimum Occupation Period</strong> = 5 years from key collection.<br /><br /><strong>During MOP CANNOT:</strong><br />- Sell the flat<br />- Rent out entire flat (rooms OK with approval)<br />- Buy/invest in private property (SG or overseas)<br /><br /><strong>After MOP:</strong><br />- Sell on resale market<br />- Rent out whole flat<br />- Buy private property<br /><br /><strong>Warning:</strong> Some cases have 10-year MOP (non-citizen spouse).</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/buying-a-flat/conditions-after-buying" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Can my client retain CPF OA balance when taking HDB loan?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>YES</strong> — from 28 Aug 2018:<br />- Can retain up to $20,000 EACH in CPF OA<br />- Remaining OA used for flat purchase<br />- Optional — can still choose to use all OA<br /><br /><strong>Tip:</strong> Good for clients who want a buffer for emergencies.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cpf.gov.sg/member/home-ownership" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Can my client buy resale HDB with short remaining lease?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>Rules:</strong><br />- Lease &lt; 20 years → CANNOT use CPF at all<br />- Lease 20+ but doesn't cover youngest buyer to 95 → CPF PRO-RATED<br />- Lease covers youngest buyer to 95 → FULL CPF<br /><br />HDB loan also pro-rated if lease doesn't cover to 95.<br /><br /><strong>Tip:</strong> Always check remaining lease vs buyer's age FIRST before viewing older flats.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cpf.gov.sg/member/home-ownership" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is the HFE letter and why is it important?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">HDB Flat Eligibility (HFE) letter replaced the old HLE letter. It tells buyers upfront:<br />- Eligibility to buy new or resale flat<br />- Amount of CPF housing grants eligible for<br />- HDB housing loan amount eligible for<br />- Resale levy / premium payable (for 2nd-timers)<br /><br /><strong>Warning:</strong> MUST have valid HFE letter BEFORE:<br />- Applying for BTO<br />- Sellers can grant you OTP for resale<br /><br />Valid for 9 months. Processing: ~1 month. Free of charge.<br />Apply via HDB Flat Portal with Singpass.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/buying-a-flat/understanding-your-eligibility-and-housing-loan-options/application-for-an-hdb-flat-eligibility-hfe-letter" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          Can buyer still use HFE letter if income changed after issuance?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>YES</strong> — as long as HFE letter is still valid (9 months), the outcome stands.<br /><br />If income INCREASED above ceiling after HFE was issued → can still proceed.<br />If income DECREASED and now qualifies for EHG → must cancel current HFE and apply fresh one.<br /><br />Housing loan amount won't be reassessed unless there are adverse changes to loan-servicing ability.<br /><br /><strong>Tip:</strong> Advise clients: Apply for HFE early. It locks in eligibility.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/buying-a-flat/understanding-your-eligibility-and-housing-loan-options/application-for-an-hdb-flat-eligibility-hfe-letter" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is the difference between HFE and HLE letter?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>HLE</strong> (HDB Loan Eligibility) = old system, only assessed loan eligibility.<br /><br /><strong>HFE</strong> (HDB Flat Eligibility) = new system (from May 2023), comprehensive:<br />- Flat purchase eligibility<br />- CPF housing grant amounts<br />- HDB loan amount (3 tiers: Prudent, Moderate, Maximum)<br />- Resale levy info<br /><br />HFE validity: 9 months<br />HLE is no longer issued for new applications.<br /><br /><strong>Tip:</strong> If client has old HLE letter, check if it's still valid.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/buying-a-flat/understanding-your-eligibility-and-housing-loan-options/application-for-an-hdb-flat-eligibility-hfe-letter" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is the Ethnic Integration Policy (EIP) and how does it affect buying?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">EIP = caps on ethnic group proportions per HDB block/neighbourhood to prevent enclaves.<br /><br /><strong>Block limit / Neighbourhood limit:</strong><br />- Chinese: 84% / 87%<br />- Malay: 25% / 22%<br />- Indian &amp; Others: 15% / 13%<br /><br />If quota for your race is hit → CANNOT buy in that block/neighbourhood.<br />Quotas refresh on 1st of each month.<br /><br /><strong>Tip:</strong> Check EIP before viewing: hdb.gov.sg EIP/SPR Quota e-Service.<br /><strong>Warning:</strong> Mixed-race households can choose which race to register under.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/buying-a-flat/buying-procedure-for-resale-flats/plan-source-and-contract/planning-considerations/eip-spr-quota" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is the SPR Quota for HDB?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Non-Malaysian Singapore PR households:<br />- Block limit: 8%<br />- Neighbourhood limit: 5%<br /><br />Malaysian PRs are EXEMPT from SPR quota (as long as Malaysian PR is listed as buyer).<br /><br /><strong>Warning:</strong> SPR quota is separate from EIP — both must be met.<br /><strong>Tip:</strong> Always check both EIP and SPR quota before proceeding with any resale viewing.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/buying-a-flat/buying-procedure-for-resale-flats/plan-source-and-contract/planning-considerations/eip-spr-quota" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          OTP for HDB resale — key details
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>Option to Purchase (OTP) for HDB resale:</strong><br />- Option fee: $1 to $1,000 (negotiable)<br />- Valid for: 21 calendar days from date of issue<br />- Buyer exercises OTP by signing resale application + paying remaining deposit (total up to $5,000 including option fee)<br />- Seller must have registered Intent to Sell for &gt;7 days<br />- Buyer must have valid HFE letter<br /><br /><strong>Warning:</strong> If buyer doesn't exercise → seller keeps option fee only.<br /><strong>Tip:</strong> Option fee is much lower than private property.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/buying-a-flat/buying-procedure-for-resale-flats" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is Cash Over Valuation (COV)?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">COV = Purchase price − HDB valuation<br /><br /><strong>Example:</strong> Price $550K, Valuation $520K → COV = $30K<br /><br />COV MUST be paid in CASH. Cannot use CPF or loan.<br /><br />HDB will issue a 'Request for Value' report during resale application.<br />Buyer only discovers the exact valuation AFTER committing to buy.<br /><br /><strong>Tip:</strong> Advise buyer: Budget extra cash for potential COV.<br /><strong>Tip:</strong> Use recent transactions in the area to estimate likely valuation.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/buying-a-flat/buying-procedure-for-resale-flats" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#059669;background:rgba(5,150,105,0.08)">Meeting a Buyer</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ MEETING A SELLER ═══ -->
+    <div class="workflow-section" data-workflow="meeting-seller">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#DC2626"></span>
+        Meeting a Seller
+        <span class="workflow-count" id="count-meeting-seller"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What happens to CPF when selling property?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">MUST refund regardless of age:<br />Principal (P) + Accrued interest at 2.5% (I) → back to CPF<br /><br /><strong>Below 55:</strong> Refund → OA<br /><strong>Above 55:</strong> Refund → meet FRS in RA first, balance → OA (from 1 Jul 2024)<br /><br /><strong>Warning:</strong> Even selling at a loss — must refund up to net sale proceeds.<br /><strong>Tip:</strong> Always check CPF statement early for exact P+I.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cpf.gov.sg/member/home-ownership/selling-your-home" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DC2626;background:rgba(220,38,38,0.08)">Meeting a Seller</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          How to calculate sale proceeds (positive sale)?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>Example:</strong><br />Selling price: $500K<br />Outstanding loan: $200K<br />Mr CPF P+I: $150K<br />Mrs CPF P+I: $100K<br /><br />$500K − $200K = $300K net<br />$300K − $150K − $100K = $50K cash to split<br /><br /><strong>Tip:</strong> Pull CPF usage statement from my.cpf.gov.sg BEFORE listing.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cpf.gov.sg/member/home-ownership/selling-your-home" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DC2626;background:rgba(220,38,38,0.08)">Meeting a Seller</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          How is CPF refund split for NEGATIVE sale?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">When net proceeds &lt; total P+I:<br /><br />Your refund = (Your P+I ÷ All owners' P+I) × Net proceeds<br /><br /><strong>Example:</strong><br />Net: $160K. Mr P+I: $150K. Mrs P+I: $50K. Total: $200K.<br />Mr: 150/200 × $160K = $120K (short $30K)<br />Mrs: 50/200 × $160K = $40K (short $10K)<br />Cash: $0<br /><br /><strong>Warning:</strong> Buyer's deposit must be returned to sellers' CPF too.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cpf.gov.sg/member/home-ownership/selling-your-home" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DC2626;background:rgba(220,38,38,0.08)">Meeting a Seller</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What documents should seller prepare?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>Key documents:</strong><br />1. CPF Usage Statement (from my.cpf.gov.sg) — shows P+I<br />2. Outstanding loan statement from bank/HDB<br />3. Title deed / lease info<br />4. Latest property tax notice<br />5. Past renovation invoices (for buyer reference)<br /><br /><strong>For HDB resale:</strong><br />6. HDB resale checklist (from HDB portal)<br />7. Ethnic Integration Policy quota check<br /><br /><strong>Tip:</strong> Get CPF statement FIRST — it determines how much cash seller actually gets.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/selling-a-flat" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DC2626;background:rgba(220,38,38,0.08)">Meeting a Seller</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is the resale levy and when does it apply?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Applies when: Received housing subsidy + buying another subsidised flat.<br /><br /><strong>Levy by flat type SOLD:</strong><br />- 2-room: $15K<br />- 3-room: $30K<br />- 4-room: $40K<br />- 5-room: $45K<br />- Executive: $50K<br />- EC: $55K<br /><br />Does NOT apply when buying resale or private property.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/buying-a-flat/resale/financing/resale-levy" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DC2626;background:rgba(220,38,38,0.08)">Meeting a Seller</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What changed for CPF refund from 1 Jul 2024?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>BEFORE 1 Jul 2024 (age 55+):</strong> Balance after FRS → paid as CASH.<br /><br /><strong>FROM 1 Jul 2024:</strong> Balance → OA as default.<br />Members can then:<br />- Use for next property purchase<br />- Transfer to RA for higher interest<br />- Withdraw as cash<br /><br /><strong>Tip:</strong> Advise senior sellers: money goes to OA first, not cash directly.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cpf.gov.sg/member/home-ownership/selling-your-home" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DC2626;background:rgba(220,38,38,0.08)">Meeting a Seller</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          How does EIP affect SELLERS?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">If your block's EIP quota for your race is at the limit:<br />- You can only sell to someone of the SAME race<br />- OR wait until quota refreshes next month<br /><br />Minority sellers often face difficulty — smaller pool of eligible buyers.<br /><br />HDB buyback scheme: If you've owned 10+ years AND tried selling for 6+ months at reasonable price → can apply for HDB to buy back.<br /><br /><strong>Tip:</strong> Check EIP status before listing. If constrained, set realistic expectations on timeline.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/buying-a-flat/buying-procedure-for-resale-flats/plan-source-and-contract/planning-considerations/eip-spr-quota" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DC2626;background:rgba(220,38,38,0.08)">Meeting a Seller</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">
+          What is Intent to Sell and when must it be registered?
+          <span class="arrow">&#9660;</span>
+        </div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Sellers must register Intent to Sell on HDB Flat Portal:<br />- Must be registered at least 7 DAYS before granting OTP to buyer<br />- Valid for 12 months<br />- Must remain valid when submitting resale application<br /><br /><strong>Purpose:</strong> HDB checks eligibility to sell (e.g., MOP fulfilled, no outstanding issues).<br /><br /><strong>How:</strong> Log in to HDB Flat Portal → My Flat Dashboard → Register Intent to Sell.<br /><br /><strong>Tip:</strong> Advise sellers to register early — don't wait until they find a buyer.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/selling-a-flat" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DC2626;background:rgba(220,38,38,0.08)">Meeting a Seller</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ CPF RULES ═══ -->
+    <div class="workflow-section" data-workflow="cpf-rules">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#2563EB"></span>
+        CPF Rules
+        <span class="workflow-count" id="count-cpf-rules"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">What are the 4 types of CPF accounts?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">1. <strong>Ordinary Account (OA)</strong> — housing, insurance, investment, education<br />2. <strong>Special Account (SA)</strong> — retirement (closed for 55+ from 2025)<br />3. <strong>Medisave Account (MA)</strong> — medical<br />4. <strong>Retirement Account (RA)</strong> — created at 55 from OA+SA<br /><br /><strong>Key:</strong> ONLY OA can be used for property.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cpf.gov.sg/member/cpf-overview" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#2563EB;background:rgba(37,99,235,0.08)">CPF Rules</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">CPF contribution rates from Jan 2026<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">For employees earning &gt; $750/month:<br /><br />- 55 &amp; below: Total 37% (Employer 17%, Employee 20%)<br />- Above 55–60: Total 34% (+1.5%) (Employer 16%, Employee 18%)<br />- Above 60–65: Total 25% (+1.5%) (Employer 12.5%, Employee 12.5%)<br />- Above 65–70: Total 16.5% (Employer 9%, Employee 7.5%)<br />- Above 70: Total 12.5% (Employer 7.5%, Employee 5%)<br /><br />Salary ceiling: $8,000/month from Jan 2026.<br />The +1.5% for age 55-65 goes to RA (up to FRS), then OA.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cpf.gov.sg/employer/employer-obligations" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#2563EB;background:rgba(37,99,235,0.08)">CPF Rules</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">CPF interest rates (2026)<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>OA:</strong> 2.5% p.a.<br /><strong>SA / MA / RA:</strong> 4.0% p.a.<br />(Reviewed quarterly)<br /><br /><strong>Extra interest:</strong><br />- All members: +1% on first $60K combined (cap $20K from OA)<br />- Age 55+: additional +1% on first $30K<br /><br /><strong>Effective for seniors:</strong><br />- First $30K: up to 6% p.a.<br />- Next $30K: up to 5% p.a.<br />- Remaining: 4% p.a.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cpf.gov.sg/member/growing-your-savings" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#2563EB;background:rgba(37,99,235,0.08)">CPF Rules</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">What can CPF OA be used for in property?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">- Downpayment (lump sum)<br />- Monthly loan instalments<br />- Partial/full loan repayment<br />- Buyer's Stamp Duty &amp; ABSD<br />- Mortgage stamp duty<br />- Legal fees<br />- Home Protection Scheme premiums (HDB only)<br />- HDB upgrading costs (MUP/HIP)<br />- Construction loan repayment (landed, after TOP)<br /><br /><strong>Cannot use SA or MA for property.</strong></div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cpf.gov.sg/member/home-ownership" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#2563EB;background:rgba(37,99,235,0.08)">CPF Rules</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">What is VL (Valuation Limit)?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">VL = Purchase price OR market valuation — whichever is LOWER.<br /><br /><strong>Example:</strong> Price $420K, Valuation $400K → VL = $400K<br /><br />This determines the baseline CPF usage limit.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cpf.gov.sg/member/home-ownership" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#2563EB;background:rgba(37,99,235,0.08)">CPF Rules</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">What is WL (Withdrawal Limit)?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">WL = 120% of VL (from Jan 2008)<br /><br /><strong>Example:</strong> VL $400K → WL = $480K<br /><br />Applies to bank loans. After hitting VL, can continue to WL if BRS is set aside.<br />For HDB loan on new BTO → NO WL applies (no limit).</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cpf.gov.sg/member/home-ownership" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#2563EB;background:rgba(37,99,235,0.08)">CPF Rules</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">CPF usage rules: HDB loan vs Bank loan summary<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>REMAINING LEASE COVERS BUYER TO 95:</strong><br /><br /><strong>HDB Loan — New flat:</strong> NO LIMIT<br /><strong>HDB Loan — Resale flat:</strong> Up to VL, beyond VL if set aside BRS<br /><strong>Bank Loan — Any:</strong> Up to VL, then up to WL (120% VL) if set aside BRS<br /><br /><strong>Tip:</strong> HDB loan is more generous for CPF usage. No VL/WL for new BTO is a big advantage.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cpf.gov.sg/member/home-ownership" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#2563EB;background:rgba(37,99,235,0.08)">CPF Rules</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">The 'age 95' rule and CPF pro-ration formula<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">From 10 May 2019:<br />Youngest buyer's age + Remaining lease ≥ 95 → FULL CPF<br />If &lt; 95 → Pro-rated<br /><br /><strong>Formula:</strong><br />(Remaining Lease − 20) ÷ (95 − Youngest Age − 20) × VL<br /><br /><strong>Examples:</strong><br />- Age 25 + 88yr = 113 → Full<br />- Age 25 + 65yr = 90 → 45/50 = 90%<br />- Age 45 + 50yr = 95 → Full (exactly 95 counts)<br />- Age 50 + 40yr = 90 → 20/25 = 80%<br /><br />Use CPF Calculator to compute exact figures.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cpf.gov.sg/member/tools-and-services/calculators/cpf-housing-usage" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#2563EB;background:rgba(37,99,235,0.08)">CPF Rules</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">What is BRS, FRS, ERS for 2026?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">For members turning 55 in 2026:<br />- <strong>Basic Retirement Sum (BRS):</strong> $110,200<br />- <strong>Full Retirement Sum (FRS):</strong> $220,400 (2×BRS)<br />- <strong>Enhanced Retirement Sum (ERS):</strong> $440,800 (4×BRS)<br /><br />BRS increases ~3.5% yearly.<br />Relevant sum is based on year person TURNED 55.<br /><br />2023: $99,400 / $198,800<br />2024: $102,900 / $205,800<br />2025: $106,500 / $213,000<br />2026: $110,200 / $220,400<br />2027: $114,100 / $228,200</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cpf.gov.sg/member/retirement-income" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#2563EB;background:rgba(37,99,235,0.08)">CPF Rules</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">What is Property Pledge?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Members 55+ with property covering them to age 95 can:<br />- Pledge property up to BRS amount<br />- Withdraw RA savings ABOVE BRS in cash<br /><br /><strong>Key points:</strong><br />- If property sold → pledge amount refunded to RA<br />- Does NOT affect ownership<br />- Need all co-owners' consent<br />- Excludes interest, govt grants, top-ups</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cpf.gov.sg/member/retirement-income" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#2563EB;background:rgba(37,99,235,0.08)">CPF Rules</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">CPF for 2nd property — what rules apply?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>HAS property covering to age 95:</strong><br />→ Set aside BRS in OA+SA (&lt;55) or RA+OA (55+)<br />→ Only EXCESS OA can be used<br />→ WL capped at 100% VL (not 120%)<br /><br /><strong>DOES NOT HAVE property covering to 95:</strong><br />→ Must set aside FRS (not just BRS)<br />→ Only excess OA can be used<br /><br />Grace period: 6 months from purchase (completed) or TOP (under construction) to sell existing property → BRS rule waived.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cpf.gov.sg/member/home-ownership" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#2563EB;background:rgba(37,99,235,0.08)">CPF Rules</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">What is Home Protection Scheme (HPS)?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">MANDATORY if using CPF for HDB monthly loan instalments.<br /><br />Mortgage-reducing insurance covering:<br />- Death / Terminal illness / Total permanent disability<br />- Up to age 65 or loan fully paid<br />- Premium from CPF OA<br />- Min 100% coverage (50% each or 100% each)<br /><br />Can buy external insurance (need CPFB approval for exemption).</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cpf.gov.sg/member/home-ownership/home-protection-scheme" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#2563EB;background:rgba(37,99,235,0.08)">CPF Rules</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ GRANTS & SUBSIDIES ═══ -->
+    <div class="workflow-section" data-workflow="grants-subsidy">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#7C3AED"></span>
+        Grants &amp; Subsidies
+        <span class="workflow-count" id="count-grants-subsidy"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">Maximum grants for resale flat — families<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Up to 3 grants combined:<br /><br /><strong>1. Family Grant:</strong> $80K (2-4rm) or $50K (5rm+)<br />   Income ≤ $14K<br /><strong>2. Enhanced Housing Grant:</strong> Up to $120K<br />   Income ≤ $9K<br /><strong>3. Proximity Grant:</strong> $30K (together) / $20K (within 4km)<br />   No income cap!<br /><br /><strong>MAX: $80K + $120K + $30K = $230,000!</strong><br /><br /><strong>Tip:</strong> Grant goes to CPF OA, counts towards withdrawal limit.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/buying-a-flat/understanding-your-eligibility-and-housing-loan-options/flat-and-grant-eligibility" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#7C3AED;background:rgba(124,58,237,0.08)">Grants &amp; Subsidies</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">Maximum grants for resale flat — singles<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>1. Singles Grant:</strong> $40K (2-4rm) / $25K (5rm)<br />   Age 35+, income ≤ $7K<br /><strong>2. EHG Singles:</strong> Up to $60K<br />   Income ≤ $4,500<br /><strong>3. Proximity Grant:</strong> $15K (together) / $10K (within 4km)<br /><br /><strong>MAX: $40K + $60K + $15K = $115,000!</strong></div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/buying-a-flat/understanding-your-eligibility-and-housing-loan-options/flat-and-grant-eligibility" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#7C3AED;background:rgba(124,58,237,0.08)">Grants &amp; Subsidies</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">EHG income table — families<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Household income → EHG:<br />≤$1,500 → $120K    $1,501-$2K → $110K<br />$2,001-$2.5K → $105K    $2,501-$3K → $95K<br />$3,001-$3.5K → $90K    $3,501-$4K → $80K<br />$4,001-$4.5K → $70K    $4,501-$5K → $65K<br />$5,001-$5.5K → $55K    $5,501-$6K → $50K<br />$6,001-$6.5K → $40K    $6,501-$7K → $30K<br />$7,001-$7.5K → $25K    $7,501-$8K → $20K<br />$8,001-$8.5K → $10K    $8,501-$9K → $5K<br /><br />Requires 12 months continuous employment. For new AND resale flats.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/buying-a-flat/understanding-your-eligibility-and-housing-loan-options/flat-and-grant-eligibility" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#7C3AED;background:rgba(124,58,237,0.08)">Grants &amp; Subsidies</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">Grants for NEW BTO flat<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>1. Enhanced Housing Grant:</strong> Up to $120K (families) / $60K (singles)<br /><strong>2. Step-Up Grant:</strong> $15K (second-timer upgrading 2-room→3-room)<br /><br />Family Grant ($80K/$50K) is resale ONLY.<br />Proximity Grant is resale ONLY.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/buying-a-flat/understanding-your-eligibility-and-housing-loan-options/flat-and-grant-eligibility" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#7C3AED;background:rgba(124,58,237,0.08)">Grants &amp; Subsidies</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">Grant conditions — what comes with accepting a grant?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Recipients:<br />- Considered having enjoyed housing subsidy<br />- Must pay resale levy if buying another subsidised flat<br />- 5-year MOP before selling<br />- Cannot invest in private property during MOP<br />- Cannot sublet whole flat during MOP<br />- On sale: ALL grant + CPF used + accrued interest refunded to CPF<br />- Flat must have ≥ 20yr remaining lease</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/buying-a-flat/understanding-your-eligibility-and-housing-loan-options/flat-and-grant-eligibility" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#7C3AED;background:rgba(124,58,237,0.08)">Grants &amp; Subsidies</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">1-year time bar after BTO cancellation<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">If cancelled after booking BTO (from March 2012 onwards):<br />→ Must wait 1 YEAR before applying for resale with CPF Housing Grant or being essential occupier.<br /><br /><strong>Tip:</strong> Warn clients: don't book BTO unless committed.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/buying-a-flat/buying-procedure-for-new-flats" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-medium">MEDIUM</span>
+            <span class="badge badge-workflow" style="color:#7C3AED;background:rgba(124,58,237,0.08)">Grants &amp; Subsidies</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ LOANS & FINANCE ═══ -->
+    <div class="workflow-section" data-workflow="loans-finance">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#D97706"></span>
+        Loans &amp; Finance
+        <span class="workflow-count" id="count-loans-finance"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">HDB Loan vs Bank Loan — full comparison<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>HDB LOAN:</strong><br />- LTV: 80%<br />- Downpayment: 20% (ALL by CPF)<br />- Interest: 2.6% fixed (OA rate + 0.1%)<br />- New BTO: No VL/WL<br />- No penalty for early repayment<br />- Income ceiling $14K<br />- Both must not own private property<br /><br /><strong>BANK LOAN:</strong><br />- No income ceiling<br />- Lower rates possible (1.5-3%)<br />- LTV: 75%<br />- 5% cash in downpayment<br />- Subject to VL &amp; WL<br />- Variable rates can rise<br />- May have lock-in penalty (usually 1-2 years)</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/buying-a-flat/financing-a-flat-purchase" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#D97706;background:rgba(217,119,6,0.08)">Loans &amp; Finance</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">What is TDSR?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Total Debt Servicing Ratio: All monthly debts ≤ 55% of gross monthly income.<br /><br />Includes: Housing loans, car loan, personal loan, credit card minimum, student loan.<br /><br /><strong>Tip:</strong> If tight: pay down other debts, longer tenure, or bigger downpayment.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.mas.gov.sg/regulation/explainers/property-loan-rules" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#D97706;background:rgba(217,119,6,0.08)">Loans &amp; Finance</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">Maximum loan tenure rules<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>HDB Loan:</strong> Max 25 years (or until age 65)<br /><strong>Bank Loan:</strong> Max 30 years (or age 65)<br /><br />If tenure + age &gt; 65:<br />- LTV drops to 55%<br />- Min 10% cash downpayment<br /><br /><strong>Tip:</strong> Older clients = shorter tenure = higher monthly payments = TDSR issues.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.mas.gov.sg/regulation/explainers/property-loan-rules" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#D97706;background:rgba(217,119,6,0.08)">Loans &amp; Finance</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STAMP DUTY & TAX ═══ -->
+    <div class="workflow-section" data-workflow="stamp-duty">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#0D9488"></span>
+        Stamp Duty &amp; Tax
+        <span class="workflow-count" id="count-stamp-duty"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">Buyer's Stamp Duty (BSD) rates<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">BSD on purchase price/valuation (higher):<br />- First $180K: 1%<br />- Next $180K: 2%<br />- Next $640K: 3%<br />- Next $500K: 4%<br />- Next $1.5M: 5%<br />- Above $3M: 6%<br /><br /><strong>Example — $1M property:</strong><br />$1,800 + $3,600 + $19,200 = $24,600<br /><br /><strong>Tip:</strong> BSD can be paid by CPF OA.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.iras.gov.sg/taxes/stamp-duty/for-property/buying-or-acquiring-property/buyer-stamp-duty-(bsd)" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#0D9488;background:rgba(13,148,136,0.08)">Stamp Duty &amp; Tax</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">ABSD rates — complete table<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>SG Citizen:</strong><br />- 1st: 0%   - 2nd: 20%   - 3rd+: 30%<br /><br /><strong>SG PR:</strong><br />- 1st: 5%   - 2nd: 30%   - 3rd+: 35%<br /><br /><strong>Foreigner:</strong> 60% (all)<br /><strong>Entity:</strong> 65% (all) + 35% non-remittable<br /><br /><strong>Tip:</strong> ABSD can be paid by CPF OA.<br /><strong>Tip:</strong> ABSD is ON TOP of BSD.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.iras.gov.sg/taxes/stamp-duty/for-property/paying-stamp-duty/additional-buyer-stamp-duty-(absd)" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#0D9488;background:rgba(13,148,136,0.08)">Stamp Duty &amp; Tax</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">ABSD remission — when can you get it back?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">SG Citizen buying 2nd property:<br />- Pay 20% ABSD upfront<br />- Sell existing property within 6 months of new purchase (or 6 months of new TOP)<br />- Apply for ABSD remission from IRAS<br /><br /><strong>Warning:</strong> Must pay first, then claim back. Cash flow planning crucial.<br /><strong>Tip:</strong> This is the key mechanism for HDB→condo upgraders.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.iras.gov.sg/taxes/stamp-duty/for-property/paying-stamp-duty/additional-buyer-stamp-duty-(absd)" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#0D9488;background:rgba(13,148,136,0.08)">Stamp Duty &amp; Tax</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">Seller's Stamp Duty (SSD)<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">SSD if selling within 3 years:<br />- ≤ 1 year: 12%<br />- ≤ 2 years: 8%<br />- ≤ 3 years: 4%<br />- &gt; 3 years: 0%<br /><br />Calculated on selling price or market value (higher).<br /><strong>Tip:</strong> Always check purchase date for sellers.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.iras.gov.sg/taxes/stamp-duty/for-property/selling-or-disposing-of-property/seller-stamp-duty-(ssd)" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#0D9488;background:rgba(13,148,136,0.08)">Stamp Duty &amp; Tax</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ RENTAL & LANDLORD ═══ -->
+    <div class="workflow-section" data-workflow="rental">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#EA580C"></span>
+        Rental &amp; Landlord
+        <span class="workflow-count" id="count-rental"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">HDB subletting rules — what landlords must know<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">- MUST get HDB approval BEFORE subletting<br />- Min occupation period: 5 years (MOP)<br />- Owner must continue to live in flat (if renting rooms)<br />- Whole flat subletting: owner can live elsewhere<br />- Max 6 persons in flat (including owner's household)<br />- Ethnic Integration Policy quota must be met<br />- Min subletting period: 6 months<br />- Non-Malaysian work permit holders CANNOT rent HDB<br /><br /><strong>Tip:</strong> Check HDB website for current ethnic quota for the block.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/renting-a-flat" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#EA580C;background:rgba(234,88,12,0.08)">Rental &amp; Landlord</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">What is the standard rental commission?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Standard market practice:<br /><br /><strong>HDB rental:</strong><br />- Landlord agent: 1 month rent (2-year lease) or half month (1-year)<br />- Tenant agent: 1 month rent (2-year lease) or half month (1-year)<br /><br /><strong>Condo rental:</strong><br />- Same as HDB typically<br />- Some luxury properties: higher commissions negotiable<br /><br /><strong>Warning:</strong> Agent can only collect from ONE party per transaction.<br /><strong>Tip:</strong> Commissions are negotiable — no fixed rules.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cea.gov.sg/consumers/renting-a-property" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#EA580C;background:rgba(234,88,12,0.08)">Rental &amp; Landlord</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">Tenancy Agreement essentials — what to include<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>Key clauses:</strong><br />1. Rent amount + payment date<br />2. Security deposit (usually 2 months)<br />3. Lease duration (typically 1 or 2 years)<br />4. Diplomatic clause (allows early termination with 2 months notice, usually after 12 months)<br />5. Maintenance responsibilities<br />6. Minor repair clause (tenant pays first $150-$200)<br />7. Inventory list + condition report<br />8. Permitted use (residential only)<br />9. Number of occupants<br />10. Termination &amp; renewal terms<br /><br /><strong>Tip:</strong> Stamp duty on lease: Tenant pays, 0.4% × total rent for lease up to 4 years.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.iras.gov.sg/taxes/stamp-duty/for-property/renting-a-property" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#EA580C;background:rgba(234,88,12,0.08)">Rental &amp; Landlord</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">Who can and cannot rent HDB flats?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>CAN rent HDB:</strong><br />- SG Citizens<br />- SG PRs<br />- Employment Pass holders<br />- S Pass holders<br />- Work Permit holders (Malaysian only)<br />- Student Pass holders<br />- Dependant's Pass holders<br />- Long Term Visit Pass holders<br /><br /><strong>CANNOT rent HDB:</strong><br />- Work Permit holders (non-Malaysian)<br />- Tourists / Short-term visitors<br /><br /><strong>Warning:</strong> Subject to Ethnic Integration Policy quota + non-citizen quota.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/renting-a-flat" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#EA580C;background:rgba(234,88,12,0.08)">Rental &amp; Landlord</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">What work pass holders CANNOT rent HDB?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>CANNOT rent HDB:</strong><br />- Work Permit holders (non-Malaysian)<br />- Training work permit holders<br />- Tourists / Short-term visitors<br /><br /><strong>CAN rent HDB:</strong><br />- Employment Pass (EP)<br />- S Pass<br />- Work Permit (Malaysian ONLY)<br />- Student Pass<br />- Dependant's Pass<br />- Long Term Visit Pass (LTVP)<br /><br /><strong>Warning:</strong> Subject to occupancy cap: Max 6 persons per flat.<br /><strong>Warning:</strong> Must also meet EIP quota for the block.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/renting-a-flat" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#EA580C;background:rgba(234,88,12,0.08)">Rental &amp; Landlord</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">What is the diplomatic clause?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Standard clause in Tenancy Agreements for expats:<br /><br />Allows tenant to terminate lease early if:<br />- Relocated overseas by employer<br />- Employment terminated<br /><br /><strong>Typical terms:</strong><br />- Kicks in after 12 months (for 2-year lease) or 6 months (for 1-year)<br />- Tenant gives 2 months written notice<br />- Tenant must provide proof (transfer letter from employer)<br /><br /><strong>Tip:</strong> Without diplomatic clause, tenant must pay remaining rent or negotiate penalty.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cea.gov.sg/consumers/renting-a-property" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#EA580C;background:rgba(234,88,12,0.08)">Rental &amp; Landlord</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TRICKY SCENARIOS ═══ -->
+    <div class="workflow-section" data-workflow="tricky">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#DB2777"></span>
+        Tricky Scenarios
+        <span class="workflow-count" id="count-tricky"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)"><span class="badge badge-tricky">Tricky</span> Client is divorced — can they buy HDB?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">- Divorced + child custody → any flat type (child as occupier)<br />- Divorced, 35+, no child → 2-room Flexi (new) or resale up to 5-room<br />- Divorced, under 35, no child → cannot buy as single<br /><br /><strong>Warning:</strong> Must wait 30 MONTHS from divorce completion before eligible for HDB flat.<br /><strong>Warning:</strong> If ex-spouse still on flat → must settle ownership first.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/buying-a-flat/understanding-your-eligibility-and-housing-loan-options/flat-and-grant-eligibility" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky Scenarios</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)"><span class="badge badge-tricky">Tricky</span> Client inherited property during MOP — what happens?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>If inherited private property during HDB MOP:</strong><br />- HDB may allow retention of inherited property if it's occupied by the inheritor's family<br />- Otherwise, must dispose of one property within 6 months<br /><br /><strong>If inherited HDB flat during MOP:</strong><br />- Complex — depends on existing flat ownership and family situation<br /><br /><strong>Tip:</strong> Each case is unique. Advise client to write to HDB for case-specific ruling.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/buying-a-flat/conditions-after-buying" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky Scenarios</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)"><span class="badge badge-tricky">Tricky</span> Client age 30 buying flat with 55-year lease — what happens?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Check: 30 + 55 = 85 &lt; 95<br /><br />Pro-rated: (55-20)/(95-30-20) = 35/45 = 77.8%<br /><br />If VL = $400K → max CPF = ~$311K only<br />HDB loan LTV also pro-rated: 77.8% × 75% = 58.3%<br /><br /><strong>Warning:</strong> Client needs much MORE cash.<br /><strong>Tip:</strong> Consider newer flat or adding older co-buyer.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cpf.gov.sg/member/tools-and-services/calculators/cpf-housing-usage" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky Scenarios</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)"><span class="badge badge-tricky">Tricky</span> Can someone working overseas buy BTO?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Generally NO — BTO requires at least 1 applicant to be SG Citizen AND physically present for key collection.<br /><br />But can buy resale HDB remotely via power of attorney.<br /><br /><strong>Tip:</strong> Advise overseas Singaporeans to consider resale instead of BTO.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/buying-a-flat/buying-procedure-for-new-flats" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-medium">MEDIUM</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky Scenarios</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)"><span class="badge badge-tricky">Tricky</span> Client buying resale HDB with &lt;20yr lease — can use CPF?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">CANNOT use CPF at all — minimum 20 years required.<br />CANNOT get HDB loan.<br /><br />Must pay entirely by cash + bank loan (if bank willing).<br />No grants available either.<br /><br /><strong>Tip:</strong> Strongly advise against unless client fully understands the implications.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cpf.gov.sg/member/home-ownership" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky Scenarios</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)"><span class="badge badge-tricky">Tricky</span> Buyer is 26, co-buyer (parent) is 60 — which age for CPF?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">The YOUNGEST buyer's age is used for pro-ration.<br /><br />So age 26 is used, not 60.<br />26 + remaining lease ≥ 95? That's the test.<br /><br /><strong>Tip:</strong> Adding older parent helps with income for loan but doesn't hurt CPF since youngest age is used.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cpf.gov.sg/member/home-ownership" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky Scenarios</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)"><span class="badge badge-tricky">Tricky</span> Can PRs buy HDB flats? What are the rules?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">- Two PRs forming family nucleus → can buy RESALE flat only (not BTO)<br />- 1 SC + 1 PR → can buy BTO and resale<br />- Single PR → CANNOT buy HDB at all<br /><br /><strong>Additional rules for PR households:</strong><br />- Must meet SPR quota (non-Malaysian PRs)<br />- Cannot own private property (local/overseas)<br />- Must dispose of private property within 30 months BEFORE HFE application<br />- First-timer SC+PR household: $10,000 premium applies<br />- Can get Citizen Top-Up Grant later if PR becomes citizen<br /><br /><strong>Tip:</strong> Many PR clients don't know they CAN buy resale HDB.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/buying-a-flat/understanding-your-eligibility-and-housing-loan-options/flat-and-grant-eligibility" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky Scenarios</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)"><span class="badge badge-tricky">Tricky</span> Client's HFE letter expired — what to do?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">HFE letter valid for 9 months. If expired:<br />- Must apply for a FRESH HFE letter<br />- New application assessed based on latest situation and prevailing policies<br />- Cannot extend expired HFE<br />- Processing: ~1 month<br /><br /><strong>Warning:</strong> If policies or income changed → eligibility may differ from previous HFE.<br /><strong>Tip:</strong> Advise clients: Start flat search immediately after getting HFE. Don't wait.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/buying-a-flat/understanding-your-eligibility-and-housing-loan-options/application-for-an-hdb-flat-eligibility-hfe-letter" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky Scenarios</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)"><span class="badge badge-tricky">Tricky</span> Spouse owns private property overseas — can buy HDB?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">For HDB purchase:<br />- Must NOT own any private property (SG or overseas) at time of application<br />- Must have disposed of overseas private property at least 30 months before HFE application<br /><br /><strong>Options:</strong><br />1. Spouse disposes overseas property → wait 30 months → apply HFE<br />2. If spouse is not included in HDB application (certain schemes) → may not apply<br /><br /><strong>Tip:</strong> This 30-month rule catches many people off guard. Check early.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/buying-a-flat/understanding-your-eligibility-and-housing-loan-options/flat-and-grant-eligibility" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky Scenarios</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)"><span class="badge badge-tricky">Tricky</span> What is the 30-month private property ownership rule?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">To buy HDB flat or get HDB loan:<br />- Applicants must NOT own private property<br />- If previously owned → must have disposed of it at least 30 MONTHS before HFE application date<br /><br /><strong>Applies to:</strong> Local AND overseas private property.<br /><strong>Includes:</strong> Condo, landed, shophouse, HUDC, overseas property.<br /><br /><strong>Warning:</strong> This is 30 months from DISPOSAL, not from signing sales agreement.<br /><strong>Tip:</strong> Plan the timeline: Sell private → wait 30 months → apply HFE → buy HDB.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.hdb.gov.sg/residential/buying-a-flat/understanding-your-eligibility-and-housing-loan-options/flat-and-grant-eligibility" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#DB2777;background:rgba(219,39,119,0.08)">Tricky Scenarios</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ AGENT BASICS ═══ -->
+    <div class="workflow-section" data-workflow="agent-basics">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#4F46E5"></span>
+        Agent Basics
+        <span class="workflow-count" id="count-agent-basics"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">Standard commission rates in Singapore<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>SELLING:</strong><br />- HDB resale: ~2% of selling price<br />- Condo/Private: 2-4% (negotiable)<br />- Landed: 2%+ (often higher — complex deals)<br /><br /><strong>BUYING:</strong><br />- HDB resale: ~1% (paid by buyer)<br />- Private: Usually 0% (buyer's agent paid via co-broking from seller's agent)<br /><br /><strong>RENTAL:</strong><br />- 1 month rent (2-year lease)<br />- Half month (1-year lease)<br /><br /><strong>Warning:</strong> Cannot dual-represent. Can only collect from ONE party.<br /><strong>Tip:</strong> All commissions are negotiable.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cea.gov.sg/consumers/engaging-a-property-agent/what-to-take-note-of-when-engaging-a-property-agent" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#4F46E5;background:rgba(79,70,229,0.08)">Agent Basics</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">CEA rules every agent must follow<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>Key CEA regulations:</strong><br />1. Must display CEA registration card during work<br />2. Cannot handle transaction monies (e.g., deposits go direct to seller/lawyer)<br />3. Cannot dual-represent buyer AND seller in same transaction<br />4. Must issue prescribed documents (estate agency agreement)<br />5. Must declare conflict of interest<br />6. Cannot make misleading claims about property<br />7. Must keep proper records for 5 years<br />8. Must complete CPD hours yearly<br /><br /><strong>Warning:</strong> Violations can lead to fines, suspension, or revocation.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cea.gov.sg/professionals/professional-conduct" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#4F46E5;background:rgba(79,70,229,0.08)">Agent Basics</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">What are CPD requirements?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Continuing Professional Development:<br />- Must complete required CPD hours yearly<br />- Includes: Ethics, property law updates, CPF/HDB policy changes, professional skills<br />- Tracked by CEA<br />- Failure to complete → may affect registration renewal</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cea.gov.sg/professionals/continuing-professional-development" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-medium">MEDIUM</span>
+            <span class="badge badge-workflow" style="color:#4F46E5;background:rgba(79,70,229,0.08)">Agent Basics</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">What can and cannot agents handle in terms of money?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>CAN handle:</strong> Valuation fees, agent commissions<br /><br /><strong>CANNOT handle:</strong><br />- Option money / exercise money<br />- Deposit money<br />- Stamp duty payments<br />- Any buyer/seller transaction monies<br /><br />Payments should go DIRECTLY between parties or through lawyers' escrow.<br /><br /><strong>Tip:</strong> Never hold client's money — serious CEA violation.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cea.gov.sg/consumers/engaging-a-property-agent/what-to-take-note-of-when-engaging-a-property-agent" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#4F46E5;background:rgba(79,70,229,0.08)">Agent Basics</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">Essential GOV.SG links every agent must bookmark<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>CPF Housing Calculator:</strong><br />cpf.gov.sg/member/tools-and-services/calculators/cpf-housing-usage<br /><br /><strong>HDB Resale Portal:</strong><br />hdb.gov.sg/residential/buying-a-flat/buying-procedure-for-resale-flats<br /><br /><strong>HDB Grant Eligibility:</strong><br />hdb.gov.sg/residential/buying-a-flat/understanding-your-eligibility-and-housing-loan-options/flat-and-grant-eligibility<br /><br /><strong>IRAS Stamp Duty Calculator:</strong><br />iras.gov.sg/taxes/stamp-duty<br /><br /><strong>MAS Loan Rules:</strong><br />mas.gov.sg/regulation/explainers/property-loan-rules<br /><br /><strong>CEA Public Register:</strong><br />cea.gov.sg/public-register<br /><br /><strong>CPF Online:</strong><br />my.cpf.gov.sg</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cpf.gov.sg/member/tools-and-services/calculators/cpf-housing-usage" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#4F46E5;background:rgba(79,70,229,0.08)">Agent Basics</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">Can client above 55 still use CPF for housing loan?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">YES — at 55, RA created. Savings up to FRS transferred from SA+OA to RA.<br /><br />After that:<br />- Remaining OA balance → can continue paying loan<br />- New CPF contributions to OA → can also be used<br /><br /><strong>Tip:</strong> OA shrinks at 55 — plan ahead.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cpf.gov.sg/member/retirement-income" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#4F46E5;background:rgba(79,70,229,0.08)">Agent Basics</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">How to reserve OA savings before turning 55?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">At age 54, apply to reserve OA so it WON'T transfer to RA.<br /><br /><strong>For:</strong> Existing housing loan or next property.<br /><br /><strong>How:</strong> Singpass → my cpf → My Requests → Retirement → 'Decide on my CPF options'<br /><br /><strong>Deadline:</strong> Within 6 months before 55th birthday, at least 5 working days.<br /><strong>Warning:</strong> Reserved amount locked to specified property only.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cpf.gov.sg/member/retirement-income" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#4F46E5;background:rgba(79,70,229,0.08)">Agent Basics</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">What is co-broking and how does commission work?<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">Co-broking = buyer's agent and seller's agent share commission.<br /><br /><strong>Common for private property:</strong><br />- Seller pays 2-4% total commission<br />- Seller's agent shares portion with buyer's agent<br />- Buyer pays $0 commission<br /><br /><strong>For HDB resale:</strong><br />- Seller pays own agent (~2%)<br />- Buyer pays own agent (~1%)<br />- Each agent only collects from their client<br /><br /><strong>Warning:</strong> Agent CANNOT collect from both parties in same transaction.<br /><strong>Warning:</strong> Must use CEA Prescribed Estate Agency Agreement.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cea.gov.sg/consumers/engaging-a-property-agent/what-to-take-note-of-when-engaging-a-property-agent" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#4F46E5;background:rgba(79,70,229,0.08)">Agent Basics</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ CALCULATIONS ═══ -->
+    <div class="workflow-section" data-workflow="calculations">
+      <div class="workflow-heading">
+        <span class="workflow-dot" style="background:#6366F1"></span>
+        Calculations
+        <span class="workflow-count" id="count-calculations"></span>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">Quick BSD calculation method<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content">For quick mental math:<br /><br /><strong>Up to $1M:</strong><br />BSD ≈ 3% × Price − $5,400<br /><br /><strong>Examples:</strong><br />$500K: 3% × 500K − $5,400 = $9,600<br />$800K: 3% × 800K − $5,400 = $18,600<br />$1M: 3% × 1M − $5,400 = $24,600<br /><br />For above $1M, add 4% bracket.<br /><br /><strong>Tip:</strong> Use IRAS stamp duty calculator for exact figures.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.iras.gov.sg/taxes/stamp-duty/for-property/buying-or-acquiring-property/buyer-stamp-duty-(bsd)" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#6366F1;background:rgba(99,102,241,0.08)">Calculations</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">Quick monthly mortgage estimation<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>Rough formula:</strong> $4.50 per $1,000 borrowed per month (at ~3% interest, 25yr)<br /><br /><strong>Examples:</strong><br />$500K loan ≈ $2,250/month<br />$750K loan ≈ $3,375/month<br />$1M loan ≈ $4,500/month<br /><br />For HDB loan (2.6%, 25yr): ~$4.30 per $1,000<br /><br /><strong>Tip:</strong> This is approximate — use bank calculators for exact.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.mas.gov.sg/regulation/explainers/property-loan-rules" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#6366F1;background:rgba(99,102,241,0.08)">Calculations</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">How to calculate seller's net proceeds<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>Formula:</strong><br />Selling Price<br />− Outstanding loan redemption<br />− CPF refund (P+I for all owners)<br />− Agent commission (~2%)<br />− Legal fees (~$2-3K)<br />− SSD (if within 3 years for private)<br />= Net cash proceeds<br /><br /><strong>Tip:</strong> Run this for every seller client at first meeting.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.cpf.gov.sg/member/home-ownership/selling-your-home" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#6366F1;background:rgba(99,102,241,0.08)">Calculations</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card">
+        <div class="qa-question" onclick="toggleCard(this)">How to calculate buyer's total upfront cost<span class="arrow">&#9660;</span></div>
+        <div class="qa-answer">
+          <div class="qa-answer-content"><strong>Formula:</strong><br />Downpayment (cash portion)<br />+ Downpayment (CPF portion)<br />+ BSD<br />+ ABSD (if applicable)<br />+ Legal fees (~$3-5K)<br />+ Stamp fees for mortgage<br />+ Valuation fee (~$200-500)<br />+ Agent commission (if buyer pays)<br />= Total upfront cost<br /><br /><strong>Tip:</strong> Break this down for every buyer at first meeting.</div>
+          <div class="qa-meta">
+            <a class="source-link" href="https://www.iras.gov.sg/taxes/stamp-duty/for-property/buying-or-acquiring-property/buyer-stamp-duty-(bsd)" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Official Source</a>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-workflow" style="color:#6366F1;background:rgba(99,102,241,0.08)">Calculations</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="no-results" id="noResults">
+    <p style="font-size:2rem;margin-bottom:8px">&#128269;</p>
+    <p style="font-weight:600">No results found</p>
+    <p style="font-size:12px;margin-top:4px">Try different keywords or clear your search</p>
+  </div>
+
+  <script>
+    function toggleCard(el) {
+      el.closest('.qa-card').classList.toggle('open');
+    }
+
+    function filterQuestions() {
+      const query = document.getElementById('searchInput').value.toLowerCase().trim();
+      const cards = document.querySelectorAll('.qa-card');
+      const sections = document.querySelectorAll('.workflow-section');
+      let totalVisible = 0;
+
+      cards.forEach(card => {
+        const questionText = card.querySelector('.qa-question').textContent.toLowerCase();
+        const answerText = card.querySelector('.qa-answer-content').textContent.toLowerCase();
+        const match = !query || questionText.includes(query) || answerText.includes(query);
+        card.style.display = match ? '' : 'none';
+        if (match) totalVisible++;
+      });
+
+      sections.forEach(section => {
+        const wf = section.getAttribute('data-workflow');
+        const visibleInSection = section.querySelectorAll('.qa-card:not([style*="display: none"])').length;
+        const countEl = document.getElementById('count-' + wf);
+        if (countEl) countEl.textContent = visibleInSection;
+        section.style.display = visibleInSection > 0 ? '' : 'none';
+      });
+
+      document.getElementById('resultCount').textContent = totalVisible + ' result' + (totalVisible !== 1 ? 's' : '');
+      document.getElementById('noResults').style.display = totalVisible === 0 ? 'block' : 'none';
+    }
+
+    filterQuestions();
+  </script>
+</body>
+</html>
